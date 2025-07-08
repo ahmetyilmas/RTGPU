@@ -50,7 +50,6 @@ module tagged_dir_fifo#(
             
             if(read && write && fifo_count < DEPTH && fifo_count > 0) begin
                 dir_out <= fifo_buffer[read_pointer];
-                dir_out <= fifo_buffer[read_pointer];
                 fifo_buffer[write_pointer] <= dir_in;
                 read_pointer <= (read_pointer + 1) % DEPTH;
                 write_pointer <= (write_pointer + 1) % DEPTH;
