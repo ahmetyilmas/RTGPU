@@ -62,8 +62,6 @@ module pipelined_normalization #(
     .TDP_out(tdp)           // TaggedDirection + power(x,y,z)
     );
     
-    
-    
     wire [WIDTH-1:0]sum;
     assign sum = tdp.pow.x + tdp.pow.y + tdp.pow.z;
     
@@ -91,52 +89,27 @@ module pipelined_normalization #(
     logic sqrt_buffer_ready;
     logic sqrt_buffer_valid;
     logic read_in;
-    logic [WIDTH-1:0] fifo_out;
+    logic [WIDTH-1:0] TDL_fifo_out;
     
-    fifo #(
-    .WIDTH(WIDTH),
-    .DEPTH(32)
+    // Tag + Direction + len fifo
+    TDL_fifo #(
+    .DEPTH(32),
+    .TAG_SIZE(TAG_SIZE)
     ) sqrt_buffer (
     .clk(clk),
     .reset(reset),
     .read(read_in),
     .write(sqrt_valid),
-    .data_in(len),
-    .data_out(fifo_out),
+    .TDL_in(TDL_sqrt),
+    .TDL_out(TDL_fifo_out),
     .ready(sqrt_buffer_ready),
     .overflow(),
     .valid(sqrt_buffer_valid)
     );
-    
-    logic dir_buffer_ready;
-    logic dir_buffer_valid;
-    
-    RayDirection dir_fifo_out;
-    
-    dir_fifo #(
-    .WIDTH(WIDTH),
-    .DEPTH(32)
-    ) direction_buffer (
-    .clk(clk),
-    .reset(reset),
-    .read(read_in),
-    .write(mul_valid_all),
-    .data_in(dir),
-    .data_out(dir_fifo_out),
-    .ready(dir_buffer_ready),
-    .overflow(),
-    .valid(dir_buffer_valid)
-    );
-    
-    
-    
-    wire [DIV_COUNT-1:0]div_req;    // bosta bulunan divider portlari
-    wire [DIV_COUNT-1:0]div_gnt;    // start sinyali verilen divider portlari
-    
-    logic [DIV_COUNT-1:0]div_valid;
-    RayDirection normalized[DIV_COUNT-1:0];
-    
-    wire [DIV_COUNT-1:0]div_gnt_start;
+
+    wire [DIV_COUNT-1:0]div_req;        // bosta bulunan divider portlari
+    wire [DIV_COUNT-1:0]div_gnt;        // izin verilen divider portlari
+    wire [DIV_COUNT-1:0]div_gnt_start;  // start sinyali verilen divider portlari
     
     
     round_robin_arbiter #(
@@ -149,13 +122,17 @@ module pipelined_normalization #(
     );
 
     // buffer ready ise ve istekte bulunan divider var ise fifo'dan oku
-    assign read_in = |div_req & sqrt_buffer_ready & dir_buffer_ready;
+    assign read_in = |div_req & sqrt_buffer_ready;
     
     // div'lerin start portunun baglantisini yap
     genvar j;
     for(j = 0; j < DIV_COUNT; j++) begin
-        assign div_gnt_start[j] = sqrt_buffer_valid & dir_buffer_valid & div_gnt[j];
+        assign div_gnt_start[j] = sqrt_buffer_valid & div_gnt[j];
     end
+    
+    
+    logic [DIV_COUNT-1:0]div_valid;
+    RayDirection normalized[DIV_COUNT-1:0];
     
     // XYZ divider'lari olustur
     genvar i;
@@ -168,8 +145,8 @@ module pipelined_normalization #(
             .clk(clk),
             .start(div_gnt_start[i]),
             .reset(reset),
-            .direction(dir_fifo_out),
-            .len(fifo_out),
+            .direction(TDL_fifo_out.direction),
+            .len(TDL_fifo_out.len),
             .valid(div_valid[i]),
             .ready(div_req[i]),
             .normalized(normalized[i])
