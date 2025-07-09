@@ -29,6 +29,7 @@ module sorted_fifo#(
       end
     endgenerate
     
+   /*
     round_robin_arbiter #(
     .NUM_PORTS(DIV_COUNT)
     ) div_select (
@@ -37,6 +38,7 @@ module sorted_fifo#(
     .req_i(write_fifo),
     .gnt_o(gnt_fifo)
     );
+    */
     
     logic fifo_ready[DIV_COUNT-1:0];
     logic fifo_valid[DIV_COUNT-1:0];
@@ -47,14 +49,14 @@ module sorted_fifo#(
     genvar j;
     generate
         for(j = 0; j < DIV_COUNT; j++) begin
-            // her divider icin 2 adet fifo
+            // her divider icin 2 derinlikte fifo
             tagged_norm_fifo #(
             .DEPTH(2)
             ) norm_fifo (
             .clk(clk),
             .reset(reset),
             .read(fifo_read[j]),
-            .write(gnt_fifo[j]),
+            .write(write_fifo[j]),
             .tagged_normalized_in(fifo_data_in[j]),
             .tagged_normalized_out(fifo_data_out[j]),
             .ready(fifo_ready[j]),
@@ -84,15 +86,15 @@ module sorted_fifo#(
                     tagged_norm_out <= fifo_data_out[index];
                     valid_out <= 1;
                     expected_tag <= next_tag;
-                    next_tag <= (next_tag == {1'b1, {TAG_SIZE-1{1'b0}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
-                            {{TAG_SIZE-1{1'b0}}, 1'b1} : expected_tag << 1; // tag one-hot sinyal olduğundan sola kaydir
-                    break;
+                    next_tag <= (next_tag == {{TAG_SIZE{1'b1}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
+                            {{TAG_SIZE-1{1'b0}}, 1'b1} : (next_tag << 1)|1; // tag one-hot sinyal olduğundan sola kaydir
+                    
                 // eger next_tag fifoya geldiyse fifo_read 1 yap
                 end else if(fifo_tag[index] == next_tag) begin
                     // ilk seferde ilk if calismadigindan expected_tag ve next_tag'i guncelle
                     if(expected_tag == {TAG_SIZE{1'b0}}) begin
                         expected_tag <= next_tag;
-                        next_tag <= next_tag << 1;
+                        next_tag <= (next_tag << 1)|1;
                     end
                     fifo_read[index] <= 1;
                 end else begin
