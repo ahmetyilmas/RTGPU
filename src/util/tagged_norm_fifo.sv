@@ -14,7 +14,8 @@ module tagged_norm_fifo#(
     output TaggedNormalized tagged_normalized_out,
     output logic ready,
     output logic overflow,
-    output logic valid
+    output logic valid,
+    output [TAG_SIZE-1:0]tag_out
     );
     
     
@@ -59,4 +60,5 @@ module tagged_norm_fifo#(
     end
     
     assign ready = (fifo_count > 0);
+    assign tag_out = fifo_buffer[read_pointer];
 endmodule
