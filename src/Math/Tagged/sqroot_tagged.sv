@@ -27,7 +27,7 @@ module sqroot_tagged #(
     logic signed [`WIDTH-1:0]len;
     
     TaggedDirection TD_ff;
-    //TaggedDirection_len TDL_ff;
+    TaggedDirection_len TDL_ff;
     
     tagged_dir_fifo #(
     .TAG_SIZE(TAG_SIZE),
@@ -54,19 +54,31 @@ module sqroot_tagged #(
     
     always_ff @(posedge clk) begin
         //  fifo ile senkron calismasi icin FF'e at
+        /*
         if(sqrt_valid) begin
             valid_ff <= sqrt_valid;
-        end
-        if(valid_ff & fifo_valid) begin
-            TDL_out.direction <= TD_ff.direction;
-            TDL_out.tag <= TD_ff.tag;
-            TDL_out.len <= {1'b0, len[WIDTH-2:0]};   // len 15 bit o yuzden ilk bitine 0 ekliyoruz
-            valid_out <= 1;
-        end else begin
+        end*/
+        if(reset) begin
+            TDL_ff <= 0;
             valid_out <= 0;
+        end else begin
+            if(sqrt_valid) begin
+                //TDL_ff.direction.x <= TD_ff.direction.x;
+                //TDL_ff.direction.y <= TD_ff.direction.y;
+                //TDL_ff.direction.z <= TD_ff.direction.z;
+                //TDL_ff.tag <= TD_ff.tag;
+                //TDL_ff.len <= {1'b0, len[WIDTH-2:0]};   // len 15 bit o yuzden ilk bitine 0 ekliyoruz
+                TDL_ff <= '{
+                direction : TD_ff.direction,
+                tag : TD_ff.tag,
+                len : len};
+                valid_out <= 1;
+            end else begin
+                valid_out <= 0;
+            end
         end
     end
-
-    //assign TDL_out = TDL_ff;
+    // {1'b0, len[WIDTH-2:0]}
+    assign TDL_out = TDL_ff;
     
 endmodule
