@@ -20,31 +20,40 @@ module pipelined_normalization #(
     );
     
     logic [TAG_SIZE-1:0] tag_used; // 64 bit: Her tag için 1-bit
-    logic current_tag;
     
     TaggedDirection taggedDir;
-    
+    TaggedDirection taggedDir_ff;
+    logic tag_valid;
     
     // Tag atanirken:
     always_ff @(posedge clk) begin
-        if (start) begin
+        if(reset) begin
+            tag_used <= 0;
+            tag_valid <= 0;
+        end else if (start) begin
+            tag_valid <= 0;
             for (int i = 0; i < TAG_SIZE; i++) begin
                 if (!tag_used[i]) begin
-                    current_tag <= i;
                     tag_used[i] <= 1;
-                    taggedDir.tag <= tag_used;
-                    taggedDir.direction <= dir;
+                    //taggedDir.tag <= tag_used;
+                    taggedDir_ff.direction <= dir;
+                    tag_valid <= 1;
                     break;
                 end
             end
+        end else begin
+            tag_valid <= 0;
         end
     end
     
+    assign taggedDir.tag = tag_valid ? tag_used : 0;
+    assign taggedDir.direction = tag_valid ? taggedDir_ff.direction : 0;
     // giris vektoru (0,0,0) ise atla
-    wire skip;
-    assign skip = ~|(dir.x | dir.y | dir.z);
+    //wire skip;
+    //assign skip = ~|(dir.x | dir.y | dir.z);
     logic mul_start;
-    assign mul_start = start & !skip;
+    
+    assign mul_start = tag_valid;
     
     logic mul_valid;
     
@@ -89,7 +98,7 @@ module pipelined_normalization #(
     logic sqrt_buffer_ready;
     logic sqrt_buffer_valid;
     logic read_in;
-    logic [WIDTH-1:0] TDL_fifo_out;
+    TaggedDirection_len TDL_fifo_out;
     
     // Tag + Direction + len fifo
     TDL_fifo #(
@@ -106,14 +115,16 @@ module pipelined_normalization #(
     .overflow(),
     .valid(sqrt_buffer_valid)
     );
-
+    
+    TaggedDirection_len TDL_div_in;
+    assign TDL_div_in = TDL_fifo_out;
     wire [DIV_COUNT-1:0]div_req;        // bosta bulunan divider portlari
     wire [DIV_COUNT-1:0]div_gnt;        // izin verilen divider portlari
     wire [DIV_COUNT-1:0]div_gnt_start;  // start sinyali verilen divider portlari
     
     
     round_robin_arbiter #(
-    .NUM_PORTS(WIDTH)
+    .NUM_PORTS(DIV_COUNT)
     )div_arbiter (
     .clk(clk),
     .reset(reset),
@@ -124,15 +135,17 @@ module pipelined_normalization #(
     // buffer ready ise ve istekte bulunan divider var ise fifo'dan oku
     assign read_in = |div_req & sqrt_buffer_ready;
     
+    logic fifo_overflow[DIV_COUNT-1:0];
+    
     // div'lerin start portunun baglantisini yap
     genvar j;
     for(j = 0; j < DIV_COUNT; j++) begin
-        assign div_gnt_start[j] = sqrt_buffer_valid & div_gnt[j];
+        assign div_gnt_start[j] = sqrt_buffer_valid & div_gnt[j] & ~fifo_overflow[j];
     end
     
     
     logic [DIV_COUNT-1:0]div_valid;
-    RayDirection normalized[DIV_COUNT-1:0];
+    TaggedNormalized normalized[DIV_COUNT-1:0];
     
     // XYZ divider'lari olustur
     genvar i;
@@ -145,15 +158,38 @@ module pipelined_normalization #(
             .clk(clk),
             .start(div_gnt_start[i]),
             .reset(reset),
-            .direction(TDL_fifo_out.direction),
-            .len(TDL_fifo_out.len),
+            .TDL_in(TDL_fifo_out),
             .valid(div_valid[i]),
             .ready(div_req[i]),
             .normalized(normalized[i])
             );
         end
     endgenerate
+    
+    
+    logic fifo_valid;
+    TaggedNormalized tagged_fifo_out;
+    // out-of-order cikan div sonuclarini sirayla cikarmak icin sorted fifo
+    sorted_fifo #(
+    .DEPTH(32),
+    .TAG_SIZE(TAG_SIZE),
+    .DIV_COUNT(DIV_COUNT)
+    ) sorted_fifo (
+    .clk(clk),
+    .reset(reset),
+    .div_valid_in(div_valid),
+    .tagged_norm_in(normalized),
+    .fifo_overflow_out(fifo_overflow),
+    .tagged_norm_out(tagged_fifo_out),
+    .valid_out(fifo_valid)
+    );
+    
+    always_ff @(posedge clk) begin
+        if (fifo_valid) begin
+            tag_used <= tag_used & ~tagged_fifo_out.tag;
+        end
+    end
 
-    //assign normal = normalized[];
-    assign valid_out = |div_valid;
+    assign normal = tagged_fifo_out.direction;
+    assign valid_out = fifo_valid;
 endmodule
