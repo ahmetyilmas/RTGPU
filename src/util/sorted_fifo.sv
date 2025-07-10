@@ -69,6 +69,9 @@ module sorted_fifo#(
     
     logic [TAG_SIZE-1:0]expected_tag;
     logic [TAG_SIZE-1:0]next_tag;
+    logic [DIV_COUNT-1:0]control;
+    logic HALT;
+    logic PREV_HALT;
     
     always_ff @(posedge clk or posedge reset) begin
         if(reset) begin
@@ -81,27 +84,53 @@ module sorted_fifo#(
                 // eger fifo_read expected_tag kismina koyulursa 1 cycle gecikilecek 
                 // ve yanlis veri okunacak. o yuzden kontrol isini next_tag kismindan
                 // yapiyoruz. ilk seferde ilk if calismayacak.calismasin, napalim?
+                
                 if(fifo_data_out[index].tag == expected_tag) begin
                     fifo_read[index] <= 0;
                     tagged_norm_out <= fifo_data_out[index];
                     valid_out <= 1;
-                    expected_tag <= next_tag;
-                    next_tag <= (next_tag == {{TAG_SIZE{1'b1}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
-                            {{TAG_SIZE-1{1'b0}}, 1'b1} : (next_tag << 1)|1; // tag one-hot sinyal olduğundan sola kaydir
                     
+                    expected_tag <= HALT ? expected_tag : next_tag;
+                    next_tag <= (next_tag == {{TAG_SIZE{1'b1}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
+                            {{TAG_SIZE-1{1'b0}}, 1'b1} : HALT ? next_tag : (next_tag << 1)|1 ; // tag one-hot sinyal olduğundan sola kaydir
+                end
+                 if(PREV_HALT) begin
+                    valid_out <= 0;
+                 end
+                 if(PREV_HALT && !HALT) begin
+                    expected_tag <= next_tag;;
+                    next_tag <= (next_tag == {{TAG_SIZE{1'b1}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
+                                        {{TAG_SIZE-1{1'b0}}, 1'b1} : (next_tag << 1)|1 ;
+                 end
                 // eger next_tag fifoya geldiyse fifo_read 1 yap
-                end else if(fifo_tag[index] == next_tag) begin
+                if(fifo_tag[index] == next_tag) begin
                     // ilk seferde ilk if calismadigindan expected_tag ve next_tag'i guncelle
                     if(expected_tag == {TAG_SIZE{1'b0}}) begin
                         expected_tag <= next_tag;
                         next_tag <= (next_tag << 1)|1;
                     end
-                    fifo_read[index] <= 1;
+                    fifo_read[index] <= HALT ? 0 : 1;
                 end else begin
                     fifo_read[index] <= 0;
                 end
             end
-            
+            PREV_HALT <= HALT;
+        end
+    end
+    
+    always_comb begin
+        for(int i = 0; i < DIV_COUNT; i++) begin
+            //control[i] = fifo_read[i];
+            if(fifo_tag[i] == next_tag) begin
+                control[i] = 1; 
+            end else begin
+                control[i] = 0;
+            end
+        end
+        if(expected_tag != {TAG_SIZE{1'b0}} && ~(|control)) begin
+            HALT = 1;
+        end else begin
+            HALT = 0;
         end
     end
     
