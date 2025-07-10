@@ -54,6 +54,14 @@ module divider #(
             next_state <= DIV_RUNNING;
             ready <= 0;
         end else if(current_state == DIV_PREP) begin
+            // bir sayinin 0'a bolumu tanimsiz ama biz max veya min yapiyoruz
+            if(|divisor_shifted == 0) begin
+                quotient_reg <= dividend_neg ? `MIN_16 : `MAX_16;
+                valid <= 1;
+                ready <= 1;
+                current_state <= DIV_IDLE;
+                next_state <= DIV_PREP;
+            end else
         // divisor'in ilk bitini 1 yapacak sekilde kaydirmak icin hangi indexin
         // 1 oldugunu soldan baslayarak bul ve MSB = 1 olacak sekilde kaydir.
             if(divisor_shifted[WIDTH+Q_BITS-1] != 1'b1) begin
