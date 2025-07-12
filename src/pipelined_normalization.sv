@@ -1,6 +1,9 @@
 `timescale 1ns / 1ps
 `include "Types.sv"
-
+/*
+ 48 TAG_SIZE 16 Div cluster için
+ Bu modül 12639 LUT, 11286 FF, 5.50 BRAM ve 3 DSP kullanıyor
+*/
     // len = sqrt(x^2 + y^2 + z^2)
     // L'x = Lx / len
     // L'y = Ly / len
@@ -59,7 +62,7 @@ module pipelined_normalization #(
     
     TaggedDirection_pow tdp;
     
-    tagged_mul #(
+    tagged_pow #(
     .WIDTH(WIDTH),
     .Q_BITS(Q_BITS),
     .TAG_SIZE(TAG_SIZE)
@@ -101,7 +104,8 @@ module pipelined_normalization #(
     TaggedDirection_len TDL_fifo_out;
     
     // Tag + Direction + len fifo
-    TDL_fifo #(
+    tdl_dp_fifo #(
+    .WIDTH(WIDTH),
     .DEPTH(32),
     .TAG_SIZE(TAG_SIZE)
     ) sqrt_buffer (
@@ -113,7 +117,7 @@ module pipelined_normalization #(
     .TDL_out(TDL_fifo_out),
     .ready(sqrt_buffer_ready),
     .overflow(),
-    .valid(sqrt_buffer_valid)
+    .valid_out(sqrt_buffer_valid)
     );
     
     TaggedDirection_len TDL_div_in;
