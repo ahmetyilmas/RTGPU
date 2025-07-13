@@ -21,6 +21,22 @@ module divider #(
     }fsm_state;
     
     
+    function automatic [5:0] count_leading_zeros(input logic [WIDTH+Q_BITS-1:0] in);
+        integer i;
+        begin
+            count_leading_zeros = 0;
+            for (i = WIDTH+Q_BITS-1; i >= 0; i = i - 1) begin
+                if (in[i] == 1'b1)
+                    return (WIDTH+Q_BITS-1 - i);
+            end
+            return WIDTH+Q_BITS;
+        end
+    endfunction
+
+
+    logic [5:0] shift_amount;
+    
+
     logic signed[WIDTH+Q_BITS-1:0]dividend_reg;
     logic signed[WIDTH-1:0]divisor_reg;
     logic       [WIDTH+Q_BITS-1:0]divisor_shifted;
@@ -64,13 +80,20 @@ module divider #(
             end else
         // divisor'in ilk bitini 1 yapacak sekilde kaydirmak icin hangi indexin
         // 1 oldugunu soldan baslayarak bul ve MSB = 1 olacak sekilde kaydir.
+
+            shift_amount = count_leading_zeros(divisor_shifted);
+            divisor_shifted <= divisor_shifted << shift_amount;
+
+            /*
             if(divisor_shifted[WIDTH+Q_BITS-1] != 1'b1) begin
                 divisor_shifted <= divisor_shifted << 1;
             end else begin
                 current_state <= next_state;
                 next_state <= DIV_RUNNING;
             end
-            
+            */
+            current_state <= next_state;
+            next_state <= DIV_RUNNING;
         // eger RUNNING durumundaysa islemi yap
         end else if(current_state == DIV_RUNNING) begin
             if(divisor_shifted < dividend_reg || divisor_shifted == dividend_reg) begin
