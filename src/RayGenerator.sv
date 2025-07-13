@@ -5,7 +5,7 @@
     48 TAG_SIZE, 16 WIDTH, 16 Div cluster için
     ------------------------------------------
     Normalizasyon 12639 LUT, 11286 FF, 5.50 BRAM ve 3 DSP kullanıyor
-    RayGenerator  16534 LUT, 12615 FF, 5.00 BRAM, 15 DSP, 244 IO kullanıyor
+    RayGenerator  22127 LUT, 11917 FF, 5.00 BRAM, 15 DSP, 244 IO kullanıyor
     */
 
 
