@@ -29,27 +29,6 @@ module pipelined_normalization #(
     logic tag_valid;
     
     // Tag atanirken:
-    /*
-    always_ff @(posedge clk) begin
-        if(reset) begin
-            tag_used <= 0;
-            tag_valid <= 0;
-        end else if (start) begin
-            tag_valid <= 0;
-            for (int i = 0; i < TAG_SIZE; i++) begin
-                if (!tag_used[i]) begin
-                    tag_used[i] <= 1;
-                    //taggedDir.tag <= tag_used;
-                    taggedDir_ff.direction <= dir;
-                    tag_valid <= 1;
-                    break;
-                end
-            end
-        end else begin
-            tag_valid <= 0;
-        end
-    end
-    */
     always_ff @(posedge clk) begin
         if(reset) begin
             tag_used <= 0;
@@ -65,9 +44,7 @@ module pipelined_normalization #(
 
     assign taggedDir.tag = tag_valid ? tag_used : 0;
     assign taggedDir.direction = tag_valid ? taggedDir_ff.direction : 0;
-    // giris vektoru (0,0,0) ise atla
-    //wire skip;
-    //assign skip = ~|(dir.x | dir.y | dir.z);
+
     logic mul_start;
     
     assign mul_start = tag_valid;
@@ -85,7 +62,7 @@ module pipelined_normalization #(
     .start(mul_start),
     .dir_in(taggedDir),
     .valid(mul_valid),
-    .TDP_out(tdp)           // TaggedDirection + power(x,y,z)
+    .TDP_out(tdp)           // TaggedDirection + pow(x,y,z)
     );
     
     wire [WIDTH-1:0]sum;
@@ -201,13 +178,6 @@ module pipelined_normalization #(
     .tagged_norm_out(tagged_fifo_out),
     .valid_out(fifo_valid)
     );
-    /*
-    always_ff @(posedge clk) begin
-        if (fifo_valid) begin
-            tag_used <= tag_used & ~tagged_fifo_out.tag;
-        end
-    end
-    */
     assign normal = tagged_fifo_out.direction;
     assign valid_out = fifo_valid;
 endmodule
