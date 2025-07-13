@@ -2,7 +2,7 @@
     `include "Types.sv"
 
     /*
-    48 TAG_SIZE, 16 WIDTH, 16 Div cluster için
+    48 TAG_SIZE, 16 WIDTH, 22 Div cluster için
     ------------------------------------------
     Normalizasyon 15944 LUT, 8711 FF, 4.50 BRAM ve 3 DSP, 100 IO kullanıyor
     RayGenerator  22127 LUT, 11917 FF, 5.00 BRAM, 15 DSP, 244 IO kullanıyor
