@@ -1,12 +1,14 @@
     `timescale 1ns / 1ps
     `include "Types.sv"
-    
+
     /*
     48 TAG_SIZE, 16 WIDTH, 16 Div cluster için
     ------------------------------------------
     Normalizasyon 12639 LUT, 11286 FF, 5.50 BRAM ve 3 DSP kullanıyor
-    RayGenerator  19071 LUT, 16375 FF, 3.50 BRAM, 0 DSP, 147 IO kullanıyor
+    RayGenerator  16534 LUT, 12615 FF, 5.00 BRAM, 15 DSP, 244 IO kullanıyor
     */
+
+
     module RayGenerator #(
         parameter WIDTH = `WIDTH,
         parameter Q_BITS = `Q_BITS,
@@ -32,17 +34,19 @@
         always_ff @(posedge clk) begin
             if(reset) begin
                 pixel_x <= {PIXEL_WIDTH{1'b1}};
-                pixel_y <= {PIXEL_HEIGHT{1'b1}};
+                pixel_y <= 0;
                 pixel_valid <= 0;
             end else if(start) begin
                 if (pixel_x == 639) begin
                     pixel_x <= 0;
                     if (pixel_y == 479)
-                     pixel_y <= 0;
+                        pixel_y <= 0;
                     else
                         pixel_y <= pixel_y + 1;
+                pixel_valid <= 1;
                 end else begin
                     pixel_x <= pixel_x + 1;
+                    pixel_valid <= 1;
                 end
             end
         end
@@ -53,7 +57,7 @@
         
         logic [WIDTH-1:0] u_lut [0:639];
         logic [WIDTH-1:0] v_lut [0:479];
-        logic [WIDTH-1:0] u_ff
+        logic [WIDTH-1:0] u_ff;
         logic [WIDTH-1:0] v_ff;
 
         initial begin
@@ -64,7 +68,7 @@
         
         Vec3 right;
 
-       // right = cross(forward,up)
+    // right = cross(forward,up)
         wire [WIDTH-1:0]yz, zy;
         wire [WIDTH-1:0]xz, zx;
         wire [WIDTH-1:0]yx, xy;
@@ -83,7 +87,7 @@
                 v_ff <= v;
             end
         end
-       
+    
         // paralel right hesaplamaları
         logic [5:0]cross_valid;
         logic cross_valid_all;
@@ -276,7 +280,7 @@
         );
 
         assign ray_out = '{
-            origin : cam.origin,
+            origin : cam.origin,    // cam zaten sabit kalacak
             direction: normalization_out
         };
         assign valid_out = norm_valid;
