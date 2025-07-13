@@ -29,6 +29,7 @@ module pipelined_normalization #(
     logic tag_valid;
     
     // Tag atanirken:
+    /*
     always_ff @(posedge clk) begin
         if(reset) begin
             tag_used <= 0;
@@ -48,7 +49,20 @@ module pipelined_normalization #(
             tag_valid <= 0;
         end
     end
-    
+    */
+    always_ff @(posedge clk) begin
+        if(reset) begin
+            tag_used <= 0;
+            tag_valid <= 0;
+        end else if(start) begin
+            tag_used <= tag_used++;
+            taggedDir_ff.direction <= dir;
+            tag_valid <= 1;
+        end else begin
+            tag_valid <= 0;
+        end
+    end
+
     assign taggedDir.tag = tag_valid ? tag_used : 0;
     assign taggedDir.direction = tag_valid ? taggedDir_ff.direction : 0;
     // giris vektoru (0,0,0) ise atla
@@ -187,13 +201,13 @@ module pipelined_normalization #(
     .tagged_norm_out(tagged_fifo_out),
     .valid_out(fifo_valid)
     );
-    
+    /*
     always_ff @(posedge clk) begin
         if (fifo_valid) begin
             tag_used <= tag_used & ~tagged_fifo_out.tag;
         end
     end
-
+    */
     assign normal = tagged_fifo_out.direction;
     assign valid_out = fifo_valid;
 endmodule
