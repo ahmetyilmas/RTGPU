@@ -9,6 +9,7 @@
 `define MIN_16 16'h8000
 `define MAX_32 32'h7FFFFFFF   // Q16.16 format
 `define MIN_32 32'h80000000
+`define NORM_DIV_COUNT 16
 
 `define tan_fov_half_16 16'h093D // tan(fov/2) fov = 60
 
@@ -19,13 +20,20 @@
 `define PIXEL_X 640
 `define PIXEL_Y 480
 
-`define TAG_SIZE 64
+`define TAG_SIZE 8 // 2^8 0-255
 
 typedef struct packed {
     logic signed [`WIDTH-1:0] x;
     logic signed [`WIDTH-1:0] y;
     logic signed [`WIDTH-1:0] z;
 } Vec3;
+
+typedef struct packed {
+    logic signed [`WIDTH-1:0] x;
+    logic signed [`WIDTH-1:0] y;
+    logic signed [`WIDTH-1:0] z;
+    logic [`TAG_SIZE-1:0] tag;
+} TaggedVec3;
 
 typedef struct packed {
     logic signed [`WIDTH-1:0]x;
@@ -43,13 +51,13 @@ typedef struct packed {
 // pow of x,y,z vectors before sqrt calc
 typedef struct packed {
     RayDirection direction;
-    logic [`TAG_SIZE:0] tag;
+    logic [`TAG_SIZE-1:0] tag;
     Vec3 pow;
 } TaggedDirection_pow;
 
 typedef struct packed {
     RayDirection direction;
-    logic [`TAG_SIZE:0]tag;
+    logic [`TAG_SIZE-1:0]tag;
     logic signed [`WIDTH-1:0]len;
 } TaggedDirection_len;
 
@@ -59,6 +67,10 @@ typedef struct packed {
     logic signed [`WIDTH-1:0] z;
 } RayOrigin;
 
+typedef struct packed {
+    RayDirection direction;
+    logic [`TAG_SIZE-1:0]tag;
+} TaggedNormalized;
 
 typedef struct packed {
     RayDirection direction;
@@ -82,6 +94,12 @@ typedef struct packed {
     logic signed [`WIDTH-1:0]y;
     logic signed [`WIDTH-1:0]z;
 } InvertedRayDirection;
+
+typedef struct packed {
+    logic signed [`WIDTH-1:0]x;
+    logic signed [`WIDTH-1:0]y;
+    logic signed [`WIDTH-1:0]z;
+} TaggedInvertedRayDirection;
 
 typedef enum logic[1:0]{
     BUSY =      2'b00,  // birim bir veriyi isliyor ve yeni veri alamaz
@@ -109,11 +127,11 @@ typedef struct packed {
 } SceneObject;
 
 typedef struct packed {
-    RayOrigin origin;                      // kamera konumu
-    Vec3 forward;                       // bakis yonu
-    Vec3 up;                            // yukari bakis yonu
-    logic signed [`WIDTH-1:0] fov;             // gorus acisi
-    logic signed [`WIDTH-1:0] aspect_ratio;    // genislik/yukseklik orani
+    RayOrigin origin;                           // kamera konumu
+    Vec3 forward;                               // bakis yonu
+    Vec3 up;                                    // yukari bakis yonu
+    logic signed [`WIDTH-1:0] fov;              // gorus acisi
+    logic signed [`WIDTH-1:0] aspect_ratio;     // genislik/yukseklik orani
 }Camera;
 
 `endif
