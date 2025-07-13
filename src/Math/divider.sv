@@ -46,7 +46,7 @@ module divider #(
         // start sinyali geldiyse ve islem yapilmiyorsa PREP durumuna gec ve
         // sonraki durumu islemi yapmak icin RUNNING olarak ayarla
             valid <= 0;
-            dividend_reg[WIDTH+Q_BITS-1:Q_BITS] <= dividend_neg ? -dividend : dividend;
+            dividend_reg <= (dividend_neg ? -dividend : dividend) <<< Q_BITS;
             divisor_reg <= divisor_neg ? -divisor : divisor;
             divisor_shifted[WIDTH+Q_BITS-1:Q_BITS] <= divisor_neg ? -divisor : divisor;
             
