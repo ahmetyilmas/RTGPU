@@ -9,7 +9,7 @@
 `define MIN_16 16'h8000
 `define MAX_32 32'h7FFFFFFF   // Q16.16 format
 `define MIN_32 32'h80000000
-`define NORM_DIV_COUNT 16
+`define NORM_DIV_COUNT 22
 
 `define tan_fov_half_16 16'h093D // tan(fov/2) fov = 60
 
