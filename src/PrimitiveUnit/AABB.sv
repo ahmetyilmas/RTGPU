@@ -4,86 +4,60 @@
 
 module AABB #(
     parameter WIDTH = `WIDTH,
-    parameter Q_BITS = `Q_BITS, // Q.3.12 format
+    parameter Q_BITS = `Q_BITS,
     parameter DIV_COUNT = 16,
     parameter MAX = `MAX_16,
-    parameter MIN = `MIN_16
+    parameter MIN = `MIN_16,
+    parameter TAG_SIZE = `TAG_SIZE
 )(
     input clk,
-    input start,
     input reset,
-    input RayDirection direction,   // direction of the ray
-    input RayOrigin origin,          // Starting position of the ray
-    input Min min,
-    input Max max,
-    output logic ray_hit,
-    output logic signed [WIDTH-1:0]tmin_out,
+    input start,
+    input TaggedRay ray_in, // origin, direction, tag bilgileri
+    input AABB aabb_box,    // min, max, color bilgileri
+    output AABB_result test_result,
     output logic valid
 );
-    localparam TAG_SIZE = `TAG_SIZE;
-    
-    
-    logic [TAG_SIZE-1:0] tag_used; // 48 bit: Her tag için 1-bit
-    
-    TaggedDirection taggedDir;
-    TaggedDirection taggedDir_ff;
-    logic tag_valid;
-    
-    // Tag atanirken:
-    always_ff @(posedge clk) begin
-        if(reset) begin
-            tag_used <= 0;
-            tag_valid <= 0;
-        end else if (start) begin
-            tag_valid <= 0;
-            for (int i = 0; i < TAG_SIZE; i++) begin
-                if (!tag_used[i]) begin
-                    tag_used[i] <= 1;
-                    //taggedDir.tag <= tag_used;
-                    taggedDir_ff.direction <= direction;
-                    tag_valid <= 1;
-                    break;
-                end
-            end
-        end else begin
-            tag_valid <= 0;
-        end
-    end
-    
-    assign taggedDir.tag = tag_valid ? tag_used : 0;
-    assign taggedDir.direction = tag_valid ? taggedDir_ff.direction : 0;
-    
     
     logic ray_hit_x,ray_hit_y,ray_hit_z;
-    
+    logic start_inv;
+
     always_comb begin
-        if(tag_valid) begin
-            if(taggedDir.direction.x == 0) begin
-                if(!(origin.x >= min.x & origin.x <= max.x))
+        if(start) begin
+            if(ray_in.direction.x == 0) begin
+                if(!(ray_in.origin.x >= aabb_box.min.x & ray_in.origin.x <= aabb_box.max.x))
                     ray_hit_x = 0;
                 else
                     ray_hit_x = 1;
             end else
                 ray_hit_x = 1;
     
-            if(taggedDir.direction.y == 0) begin
-                if(!(origin.y >= min.y & origin.y <= max.y)) begin
+            if(ray_in.direction.y == 0) begin
+                if(!(ray_in.origin.y >= aabb_box.min.y & ray_in.origin.y <= aabb_box.max.y)) begin
                     ray_hit_y = 0;
                 end else begin
                     ray_hit_y = 1;
                 end 
             end else 
                 ray_hit_y = 1;
-            if(taggedDir.direction.z == 0) begin
-                if(!(origin.z >= min.z & origin.z <= max.z)) begin
+            if(ray_in.direction.z == 0) begin
+                if(!(ray_in.origin.z >= aabb_box.min.z & ray_in.origin.z <= aabb_box.max.z)) begin
                     ray_hit_z = 0;
                 end else begin
                     ray_hit_z = 1;
                 end
             end else
                 ray_hit_z = 1;
+            
+            start_inv = 1;
         end
     end
+
+    TaggedDirection dir_in;
+    assign dir_in = '{
+        direction : ray_in.direction,
+        tag : ray_in.tag
+    };
 
     TaggedDirection inv_dir;
     logic valid_inv;
@@ -91,13 +65,13 @@ module AABB #(
     inverted_direction #(
         .WIDTH(WIDTH),
         .Q_BITS(Q_BITS),
-        .TAG_SIZE(`TAG_SIZE),
+        .TAG_SIZE(TAG_SIZE),
         .DIV_COUNT(DIV_COUNT)
     ) invert (
         .clk(clk),
         .reset(reset),
-        .start(tag_valid),
-        .direction_in(taggedDir),
+        .start(start_inv),
+        .direction_in(dir_in),
         .inv_dir_out(inv_dir),
         .valid_out(valid_inv)
     );
@@ -105,7 +79,6 @@ module AABB #(
     
     TaggedVec3 t_xyz_1;
     TaggedVec3 t_xyz_2;
-    logic [TAG_SIZE-1:0]tag_release;
     
     logic signed [WIDTH-1:0] mul_tx1, mul_tx2, mul_ty1, mul_ty2, mul_tz1, mul_tz2;
     logic signed [WIDTH-1:0] tx1, tx2, ty1, ty2, tz1, tz2;
@@ -113,18 +86,23 @@ module AABB #(
     logic signed [WIDTH-1:0] tmaxx, tmaxy, tmaxz;
     logic signed [WIDTH-1:0] tmin, tmax;
     logic signed [WIDTH-1:0] max_tmin;
+    logic signed [WIDTH-1:0] tmin_out;
     
+    
+    logic ray_hit;
+    logic [TAG_SIZE-1:0] tag_out; 
+
     logic valid_tx1, valid_tx2;
     logic valid_ty1, valid_ty2;
     logic valid_tz1, valid_tz2;
     logic valid_all;
     
-    assign tx1 = min.x - origin.x;
-    assign tx2 = max.x - origin.x;
-    assign ty1 = min.y - origin.y;
-    assign ty2 = max.y - origin.y;
-    assign tz1 = min.z - origin.z;
-    assign tz2 = max.z - origin.z;
+    assign tx1 = aabb_box.min.x - ray_in.origin.x;
+    assign tx2 = aabb_box.max.x - ray_in.origin.x;
+    assign ty1 = aabb_box.min.y - ray_in.origin.y;
+    assign ty2 = aabb_box.max.y - ray_in.origin.y;
+    assign tz1 = aabb_box.min.z - ray_in.origin.z;
+    assign tz2 = aabb_box.max.z - ray_in.origin.z;
     
     
     
@@ -160,9 +138,6 @@ module AABB #(
     .TD_out(t_xyz_2)
     );
     
-    
-    
-
     assign mul_tx1 = (inv_dir.direction.x == MAX) ? MIN : t_xyz_1.x;
     assign mul_tx2 = (inv_dir.direction.x == MAX) ? MAX : t_xyz_2.x;
     assign mul_ty1 = (inv_dir.direction.y == MAX) ? MIN : t_xyz_1.y;
@@ -170,6 +145,7 @@ module AABB #(
     assign mul_tz1 = (inv_dir.direction.z == MAX) ? MIN : t_xyz_1.z;
     assign mul_tz2 = (inv_dir.direction.z == MAX) ? MAX : t_xyz_2.z;
 
+    assign tag_out = t_xyz_1.tag;
 
     assign valid_all = &t_calc_valid;
     
@@ -193,21 +169,20 @@ module AABB #(
             max_tmin = (tmin >= 0) ? tmin : 0;
             ray_hit = (tmax >= max_tmin);
             tmin_out = ray_hit ? max_tmin : 0;
-            tag_release <= t_xyz_1.tag;
             valid <= 1;
         end else if (!ray_hit_x || !ray_hit_y || !ray_hit_z) begin
             ray_hit = 0;
             valid <= 1;
-            tag_release <= inv_dir.tag;
         end else begin
             valid <= 0;
         end
     end
 
-    always_ff @(posedge clk) begin
-        if (valid) begin
-            tag_used <= tag_used & ~tag_release;
-        end
-    end
+    assign test_result = '{
+        box : aabb_box,
+        ray_hit : ray_hit,
+        tag : tag_out,
+        tmin : tmin_out
+    };
     
 endmodule
