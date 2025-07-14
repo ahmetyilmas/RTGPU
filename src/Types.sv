@@ -17,10 +17,12 @@
 `define PIXEL_WIDTH 10 // 2^10 = 1024 640p icin yeterli
 `define PIXEL_HEIGHT 9 // 2^9 = 512 480p icin yeterli
 
-`define PIXEL_X 640
-`define PIXEL_Y 480
+`define PIXEL_X 128     // 640
+`define PIXEL_Y 128     // 480
 
 `define TAG_SIZE 8 // 2^8 0-255
+
+`define BOX_COUNT 3
 
 typedef struct packed {
     logic signed [`WIDTH-1:0] x;
@@ -78,6 +80,12 @@ typedef struct packed {
 } Ray;
 
 typedef struct packed {
+    RayDirection direction;
+    RayOrigin origin;
+    logic [`TAG_SIZE-1:0] tag;
+} TaggedRay;
+
+typedef struct packed {
     logic signed [`WIDTH-1:0]x;
     logic signed [`WIDTH-1:0]y;
     logic signed [`WIDTH-1:0]z;
@@ -108,13 +116,6 @@ typedef enum logic[1:0]{
     ACCEPTING = 2'b11   // birim bir veri isliyor ama yeni veri alabilir
 }state;
 
-
-
-typedef struct packed {
-    Min min;
-    Max max;
-} AABB;
-
 typedef struct packed {
     logic [7:0]r;
     logic [7:0]g;
@@ -122,9 +123,21 @@ typedef struct packed {
 } Color;
 
 typedef struct packed {
+    Min min;
+    Max max;
     Color color;
-    AABB box;
+} AABB;
+
+typedef struct packed {
+    AABB [`BOX_COUNT-1:0]box;
 } SceneObject;
+
+typedef struct packed {
+    AABB box;
+    logic ray_hit;
+    logic [`TAG_SIZE-1:0]tag;
+    logic [`WIDTH-1:0] tmin;
+} AABB_result;
 
 typedef struct packed {
     RayOrigin origin;                           // kamera konumu
