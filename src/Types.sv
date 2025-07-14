@@ -44,7 +44,6 @@ typedef struct packed {
 } RayDirection;
 
 
-// a tag added for async calculations
 typedef struct packed {
     RayDirection direction;
     logic [`TAG_SIZE-1:0] tag;
