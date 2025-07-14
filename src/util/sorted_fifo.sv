@@ -29,17 +29,6 @@ module sorted_fifo#(
       end
     endgenerate
     
-   /*
-    round_robin_arbiter #(
-    .NUM_PORTS(DIV_COUNT)
-    ) div_select (
-    .clk(clk),
-    .reset(reset),
-    .req_i(write_fifo),
-    .gnt_o(gnt_fifo)
-    );
-    */
-    
     logic fifo_ready[DIV_COUNT-1:0];
     logic fifo_valid[DIV_COUNT-1:0];
     logic [TAG_SIZE-1:0]fifo_tag[DIV_COUNT-1:0];
@@ -75,8 +64,8 @@ module sorted_fifo#(
     
     always_ff @(posedge clk or posedge reset) begin
         if(reset) begin
-            expected_tag <= {TAG_SIZE{1'b0}};     // 64'h0000_0000_0000_0000
-            next_tag <= {{TAG_SIZE-1{1'b0}}, 1'b1};         // 64'h0000_0000_0000_0001
+            expected_tag <= 0;     // 64'h0000_0000_0000_0000
+            next_tag <= 1;         // 64'h0000_0000_0000_0001
             valid_out <= 0;
         end else begin
             valid_out <= 0;
@@ -91,24 +80,28 @@ module sorted_fifo#(
                     valid_out <= 1;
                     
                     expected_tag <= HALT ? expected_tag : next_tag;
-                    next_tag <= (next_tag == {{TAG_SIZE{1'b1}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
-                            {{TAG_SIZE-1{1'b0}}, 1'b1} : HALT ? next_tag : (next_tag << 1)|1 ; // tag one-hot sinyal olduğundan sola kaydir
+                    //next_tag <= (next_tag == {{TAG_SIZE{1'b1}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
+                    //        {{TAG_SIZE-1{1'b0}}, 1'b1} : HALT ? next_tag : (next_tag << 1)|1 ; // tag one-hot sinyal olduğundan sola kaydir
+                    next_tag <= HALT ? next_tag : next_tag+1;
                 end
                  if(PREV_HALT) begin
                     valid_out <= 0;
                  end
                  if(PREV_HALT && !HALT) begin
-                    expected_tag <= next_tag;;
-                    next_tag <= (next_tag == {{TAG_SIZE{1'b1}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
-                                        {{TAG_SIZE-1{1'b0}}, 1'b1} : (next_tag << 1)|1 ;
+                    expected_tag <= next_tag;
+                    //next_tag <= (next_tag == {{TAG_SIZE{1'b1}}}) ? // 64'h1000_0000_0000_0000 ise basa donuyoruz
+                    
+                    //                    {{TAG_SIZE-1{1'b0}}, 1'b1} : (next_tag << 1)|1 ;
+                    next_tag <= next_tag+1;
                  end
                 // eger next_tag fifoya geldiyse fifo_read 1 yap
                 if(fifo_tag[index] == next_tag) begin
                     // ilk seferde ilk if calismadigindan expected_tag ve next_tag'i guncelle
-                    if(expected_tag == {TAG_SIZE{1'b0}}) begin
+                    if(expected_tag == 0) begin
                         expected_tag <= next_tag;
-                        next_tag <= (next_tag << 1)|1;
+                        next_tag <= next_tag+1;
                     end
+                    
                     fifo_read[index] <= HALT ? 0 : 1;
                 end else begin
                     fifo_read[index] <= 0;
