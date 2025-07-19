@@ -13,8 +13,8 @@ module tagged_pow #(
     output logic valid_out,
     output logic signed [WIDTH-1:0] square_out
 );
-
-    logic [WIDTH+Q_BITS-1:0] pow_a;
+    
+    logic [2*WIDTH-1:0] pow_a;
     logic valid;
 
     always_ff @(posedge clk) begin
@@ -30,7 +30,7 @@ module tagged_pow #(
         end
     end
 
-    assign square_out = pow_a;
+    assign square_out = pow_a[WIDTH+Q_BITS-1:Q_BITS];
     assign valid_out = valid;
 
 endmodule
