@@ -43,7 +43,25 @@ typedef struct packed {
     logic signed [`WIDTH-1:0]z;
 } RayDirection;
 
+typedef struct packed {
+    logic signed [`WIDTH-1:0]x;
+    logic signed [`WIDTH-1:0]y;
+    logic signed [`WIDTH-1:0]z;
 
+    logic signed [`WIDTH-1:0]len;
+} RayDirection_len;
+
+typedef struct packed {
+    logic signed [`WIDTH-1:0]x;
+    logic signed [`WIDTH-1:0]y;
+    logic signed [`WIDTH-1:0]z;
+
+    logic signed [`WIDTH-1:0]sqr_x;
+    logic signed [`WIDTH-1:0]sqr_y;
+    logic signed [`WIDTH-1:0]sqr_z;
+} RayDirection_sqr;
+
+// a tag added for async calculations
 typedef struct packed {
     RayDirection direction;
     logic [`TAG_SIZE-1:0] tag;
