@@ -17,64 +17,34 @@ module pipelined_normalization #(
     input clk,
     input reset,
     input start,
-    input RayDirection dir,
-    output RayDirection normal, // normalized x,y,z directions
+    input RayDirection ray_in,
+    output RayDirection normalized_ray_out, // normalized x,y,z directions
     output logic valid_out
     );
     
-    logic [TAG_SIZE-1:0] tag_used; // 64 bit: Her tag için 1-bit
-    
-    TaggedDirection taggedDir;
-    TaggedDirection taggedDir_ff;
-    logic tag_valid;
-    
-    // Tag atanirken:
-    always_ff @(posedge clk) begin
-        if(reset) begin
-            tag_used <= 0;
-            tag_valid <= 0;
-        end else if(start) begin
-            tag_used <= tag_used++;
-            taggedDir_ff.direction <= dir;
-            tag_valid <= 1;
-        end else begin
-            tag_valid <= 0;
-        end
-    end
-
-    assign taggedDir.tag = tag_valid ? tag_used : 0;
-    assign taggedDir.direction = tag_valid ? taggedDir_ff.direction : 0;
-
-    logic mul_start;
-    
-    assign mul_start = tag_valid;
-    
     logic mul_valid;
     
-    TaggedDirection_pow tdp;
+    // isin yonlerinin kareleri
+    Vec3 RD_square;
     
-    tagged_pow #(
+    direction_square #(
     .WIDTH(WIDTH),
-    .Q_BITS(Q_BITS),
-    .TAG_SIZE(TAG_SIZE)
-    ) mul (
+    .Q_BITS(Q_BITS)
+    ) dir_sqr (
     .clk(clk),
-    .start(mul_start),
-    .dir_in(taggedDir),
+    .start(start),
+    .RD_in(ray_in),
     .valid(mul_valid),
-    .TDP_out(tdp)           // TaggedDirection + pow(x,y,z)
+    .RDS_out(RD_square)
     );
     
     wire [WIDTH-1:0]sum;
-    assign sum = tdp.pow.x + tdp.pow.y + tdp.pow.z;
-    
-    TaggedDirection TD_sqrt;
-    assign TD_sqrt.direction = tdp.direction;
-    assign TD_sqrt.tag = tdp.tag;
+    assign sum = RD_square.x + RD_square.y + RD_square.z;
     
     logic sqrt_valid;
-    TaggedDirection_len TDL_sqrt;
+    RayDirection_len RD_len;
     
+    // BURADAYIM
     
     sqroot_tagged #(
     .WIDTH(WIDTH),
@@ -84,9 +54,9 @@ module pipelined_normalization #(
     .start(mul_valid),
     .reset(reset),
     .x_in(sum),
-    .TD_in(TD_sqrt),
+    .TD_in(RD_square),
     .valid_out(sqrt_valid),
-    .TDL_out(TDL_sqrt)
+    .TDL_out(RD_len)
     );
     
     logic sqrt_buffer_ready;
@@ -178,6 +148,6 @@ module pipelined_normalization #(
     .tagged_norm_out(tagged_fifo_out),
     .valid_out(fifo_valid)
     );
-    assign normal = tagged_fifo_out.direction;
+    assign normal = tagged_fifo_out;
     assign valid_out = fifo_valid;
 endmodule
