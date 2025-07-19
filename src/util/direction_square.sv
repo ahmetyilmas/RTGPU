@@ -3,7 +3,7 @@
 
 module direction_square #(
     parameter WIDTH  = `WIDTH,
-    parameter Q_BITS = `Q_BITS,
+    parameter Q_BITS = `Q_BITS
 )(
     input clk,
     input start,
