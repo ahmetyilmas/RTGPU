@@ -8,9 +8,12 @@ module direction_square #(
     input clk,
     input start,
     input RayDirection RD_in,
-    output logic valid,
+    output logic valid_out,
     output RayDirection_sqr RDS_out
 );
+
+    RayDirection_sqr RDS_ff;
+    logic valid_ff;
 
     logic signed [WIDTH-1:0]x;
     logic signed [WIDTH-1:0]y;
@@ -20,6 +23,7 @@ module direction_square #(
     logic signed [2*WIDTH-1:0]sqr_y;
     logic signed [2*WIDTH-1:0]sqr_z;
     
+
     assign x = RD_in.x;
     assign y = RD_in.y;
     assign z = RD_in.z;
@@ -30,7 +34,7 @@ module direction_square #(
     
     always_ff @(posedge clk) begin
         if (start) begin
-            RDS_out = '{
+            RDS_ff = '{
                 x : RD_in.x,
                 y : RD_in.y,
                 z : RD_in.z,
@@ -39,9 +43,9 @@ module direction_square #(
                 sqr_y : sqr_y,
                 sqr_z : sqr_z
             };
-            valid <= 1;
+            valid_ff <= 1;
         end else begin
-            RDS_out = '{
+            RDS_ff = '{
                 x : 0,
                 y : 0,
                 z : 0,
@@ -50,9 +54,11 @@ module direction_square #(
                 sqr_y : 0,
                 sqr_z : 0
             };
-            valid <= 0;
+            valid_ff <= 0;
         end
     end
 
+    assign RDS_out = RDS_ff;
+    assign valid_out = valid_ff;
     
 endmodule
