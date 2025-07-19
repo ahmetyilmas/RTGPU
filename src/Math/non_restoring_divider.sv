@@ -2,7 +2,7 @@
 `include "Types.sv"
 /*
     16 WIDTH, 12 Q_BITS icin sentez sonuclari
-    1673 LUT,
+    1674 LUT,
     1300 FF, 
     28 LUTRAM
 */
@@ -129,61 +129,62 @@ module non_restoring_divider #(
             assign Q2_WIRE[i] = {Q1_WIRE[i][MSB:1], ~A2_WIRE[i][MSB]};
             assign A3_WIRE[i] = A2_WIRE[i][MSB] ? A2_WIRE[i] + M_REG_OUT[i] : A2_WIRE[i];
             
-            
-            // A REG
-            d_ff #(
-                .WIDTH(BIT_COUNT)
-            ) A_REG (
-                .clk(clk),
-                .reset(reset),
-                .data_in(A3_WIRE[i]),
-                .q_out(A_REG_OUT[i+1])
-            );
-            // Q REG
-            d_ff #(
-                .WIDTH(BIT_COUNT)
-            ) Q_REG (
-                .clk(clk),
-                .reset(reset),
-                .data_in(Q2_WIRE[i]),
-                .q_out(Q_REG_OUT[i+1])
-            );
-            // M REG
-            d_ff #(
-                .WIDTH(BIT_COUNT)
-            ) M_REG (
-                .clk(clk),
-                .reset(reset),
-                .data_in(M_REG_OUT[i]),
-                .q_out(M_REG_OUT[i+1])
-            );
-            // SIGN REG
-            d_ff #(
-                .WIDTH(1)
-            ) SIGN_REG (
-                .clk(clk),
-                .reset(reset),
-                .data_in(SIGN_REG_OUT[i]),
-                .q_out(SIGN_REG_OUT[i+1])
-            );
-            // START REG
-            d_ff #(
-                .WIDTH(1)
-            ) START_REG (
-                .clk(clk),
-                .reset(reset),
-                .data_in(START_REG_OUT[i]),
-                .q_out(START_REG_OUT[i+1])
-            );
-            // ZERO REG
-            d_ff #(
-                .WIDTH(1)
-            ) ZERO_REG (
-                .clk(clk),
-                .reset(reset),
-                .data_in(ZERO_REG_OUT[i]),
-                .q_out(ZERO_REG_OUT[i+1])
-            );
+            if(i < BIT_COUNT-1) begin
+                // A REG
+                d_ff #(
+                    .WIDTH(BIT_COUNT)
+                ) A_REG (
+                    .clk(clk),
+                    .reset(reset),
+                    .data_in(A3_WIRE[i]),
+                    .q_out(A_REG_OUT[i+1])
+                );
+                // Q REG
+                d_ff #(
+                    .WIDTH(BIT_COUNT)
+                ) Q_REG (
+                    .clk(clk),
+                    .reset(reset),
+                    .data_in(Q2_WIRE[i]),
+                    .q_out(Q_REG_OUT[i+1])
+                );
+                // M REG
+                d_ff #(
+                    .WIDTH(BIT_COUNT)
+                ) M_REG (
+                    .clk(clk),
+                    .reset(reset),
+                    .data_in(M_REG_OUT[i]),
+                    .q_out(M_REG_OUT[i+1])
+                );
+                // SIGN REG
+                d_ff #(
+                    .WIDTH(1)
+                ) SIGN_REG (
+                    .clk(clk),
+                    .reset(reset),
+                    .data_in(SIGN_REG_OUT[i]),
+                    .q_out(SIGN_REG_OUT[i+1])
+                );
+                // START REG
+                d_ff #(
+                    .WIDTH(1)
+                ) START_REG (
+                    .clk(clk),
+                    .reset(reset),
+                    .data_in(START_REG_OUT[i]),
+                    .q_out(START_REG_OUT[i+1])
+                );
+                // ZERO REG
+                d_ff #(
+                    .WIDTH(1)
+                ) ZERO_REG (
+                    .clk(clk),
+                    .reset(reset),
+                    .data_in(ZERO_REG_OUT[i]),
+                    .q_out(ZERO_REG_OUT[i+1])
+                );
+            end
         end
     endgenerate
 
@@ -273,8 +274,11 @@ module non_restoring_divider #(
                     quotient_out = Q2_WIRE[BIT_COUNT][WIDTH-1:0];
                 end
             end
+            valid_out = START_REG_OUT[BIT_COUNT];
+        end else begin
+            quotient_out = 0;
+            valid_out = 0;
         end
-        valid_out = START_REG_OUT[BIT_COUNT];
     end
     
 endmodule
