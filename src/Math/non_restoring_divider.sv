@@ -1,6 +1,11 @@
 `timescale 1ns/1ps
 `include "Types.sv"
-
+/*
+    16 WIDTH, 12 Q_BITS icin sentez sonuclari
+    1673 LUT,
+    1300 FF, 
+    28 LUTRAM
+*/
 module non_restoring_divider #(
     WIDTH  = `WIDTH,
     Q_BITS = `Q_BITS,
