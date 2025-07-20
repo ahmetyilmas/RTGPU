@@ -1,29 +1,34 @@
 `timescale 1ns / 1ps
 `include "Types.sv"
 
-// tagged dir * normal sayi carpimini 1 cycle ile veren modul
+// dir * float carpimini 1 clk'da veren modul
 module t_calc #(
     parameter WIDTH  = `WIDTH,
-    parameter Q_BITS = `Q_BITS,
-    parameter TAG_SIZE = 48
+    parameter Q_BITS = `Q_BITS
 )(
     input clk,
     input start,
-    input TaggedDirection dir_in_a,
+    input skip_in,
+    input RayDirection RD_in,
     input logic signed [WIDTH-1:0] tx,
     input logic signed [WIDTH-1:0] ty,
     input logic signed [WIDTH-1:0] tz,
-    output logic valid,
-    output TaggedDirection TD_out
+    output logic skip_out,
+    output logic valid_out,
+    output RayDirection RD_out
 );
     
+    RayDirection RD_ff;
+    logic skip;
+    logic valid;
+
     logic signed [WIDTH-1:0] a_x;
     logic signed [WIDTH-1:0] a_y;
     logic signed [WIDTH-1:0] a_z;
     
-    assign a_x = dir_in_a.direction.x;
-    assign a_y = dir_in_a.direction.y;
-    assign a_z = dir_in_a.direction.z;
+    assign a_x = RD_in.x;
+    assign a_y = RD_in.y;
+    assign a_z = RD_in.z;
     
     
     logic signed [2*WIDTH-1:0]res_x;
@@ -36,13 +41,21 @@ module t_calc #(
     
     always_ff @(posedge clk) begin
         if (start) begin
-            TD_out.tag <= dir_in_a.tag;
-            TD_out.direction.x <= res_x[WIDTH+Q_BITS-1:Q_BITS];
-            TD_out.direction.y <= res_y[WIDTH+Q_BITS-1:Q_BITS];
-            TD_out.direction.z <= res_z[WIDTH+Q_BITS-1:Q_BITS];
+            RD_ff.x <= res_x[WIDTH+Q_BITS-1:Q_BITS];
+            RD_ff.y <= res_y[WIDTH+Q_BITS-1:Q_BITS];
+            RD_ff.z <= res_z[WIDTH+Q_BITS-1:Q_BITS];
+            skip <= skip_in;
             valid <= 1;
         end else begin
+            RD_ff.x <= 0;
+            RD_ff.y <= 0;
+            RD_ff.z <= 0;
+            skip <= 0;
             valid <= 0;
         end
     end
+
+    assign RD_out = RD_ff;
+    assign skip_out = skip;
+    assign valid_out = valid;
 endmodule
