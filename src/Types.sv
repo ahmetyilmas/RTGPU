@@ -152,7 +152,6 @@ typedef struct packed {
 typedef struct packed {
     AABB box;
     logic ray_hit;
-    logic [`TAG_SIZE-1:0]tag;
     logic [`WIDTH-1:0] tmin;
 } AABB_result;
 
