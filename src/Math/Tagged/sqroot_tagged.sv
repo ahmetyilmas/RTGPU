@@ -63,11 +63,6 @@ module sqroot_tagged #(
             valid_out <= 0;
         end else begin
             if(sqrt_valid) begin
-                //TDL_ff.direction.x <= TD_ff.direction.x;
-                //TDL_ff.direction.y <= TD_ff.direction.y;
-                //TDL_ff.direction.z <= TD_ff.direction.z;
-                //TDL_ff.tag <= TD_ff.tag;
-                //TDL_ff.len <= {1'b0, len[WIDTH-2:0]};   // len 15 bit o yuzden ilk bitine 0 ekliyoruz
                 TDL_ff <= '{
                 direction : TD_ff.direction,
                 tag : TD_ff.tag,
