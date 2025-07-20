@@ -39,9 +39,9 @@ module direction_square #(
                 y : RD_in.y,
                 z : RD_in.z,
 
-                sqr_x : sqr_x,
-                sqr_y : sqr_y,
-                sqr_z : sqr_z
+                sqr_x : sqr_x[WIDTH+Q_BITS-1:Q_BITS],
+                sqr_y : sqr_y[WIDTH+Q_BITS-1:Q_BITS],
+                sqr_z : sqr_z[WIDTH+Q_BITS-1:Q_BITS]
             };
             valid_ff <= 1;
         end else begin
