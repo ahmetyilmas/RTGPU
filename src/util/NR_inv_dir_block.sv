@@ -3,7 +3,7 @@
 
 // 1/dir icin birlestirilmis x,y,z kordinatlarini hesaplayacak divider blogu
 
-module NR_inv_div_block #(
+module NR_inv_dir_block #(
     parameter WIDTH = `WIDTH,
     parameter Q_BITS = `Q_BITS,   // Q3.12
     parameter MAX    = `MAX_16,
