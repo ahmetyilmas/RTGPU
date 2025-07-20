@@ -13,13 +13,27 @@ module NR_inv_div_block #(
     input clk,
     input start,
     input reset,
+    input skip_in,
     input RayDirection RD_in,
 
     output RayDirection RD_out,
+    output logic skip_out,
     output logic valid_out
-    
     );
 
+    localparam MSB = WIDTH+Q_BITS-1;
+    localparam LSB = 0;
+
+    logic [WIDTH+Q_BITS:0] skip_flag;
+    
+    always_ff @(posedge clk) begin
+        if(reset) begin
+            skip_flag <= 0;
+        end else begin
+                skip_flag <= {skip_flag[MSB-1:LSB], skip_in};
+        end
+    end
+    
     logic valid_x, valid_y, valid_z;
 
     wire [WIDTH-1:0]quotient_x;
@@ -77,6 +91,7 @@ module NR_inv_div_block #(
                 y : quotient_y,
                 z : quotient_z
             };
+            skip_out = skip_flag[MSB];
         end else begin
             valid_out = 0;
             RD_out = '{
@@ -84,6 +99,7 @@ module NR_inv_div_block #(
                 y : 0,
                 z : 0
             };
+            skip_out = 0;
         end
     end
 endmodule
