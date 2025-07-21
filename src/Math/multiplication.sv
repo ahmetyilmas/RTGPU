@@ -8,10 +8,10 @@ module multiplication #(
 )(
     input start,
     input clk,
-    input        [WIDTH-1:0]a,
-    input        [WIDTH-1:0]b,
+    input signed [WIDTH-1:0]a,
+    input signed [WIDTH-1:0]b,
     output valid,
-    output logic [WIDTH-1:0]result
+    output logic signed [WIDTH-1:0]result
 );
 
     logic [2*WIDTH-1:0]result_ff;
