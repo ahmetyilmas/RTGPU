@@ -20,7 +20,6 @@ module AABB #(
     logic ray_hit_x,ray_hit_y,ray_hit_z;
     logic start_inv;
     logic skip_inv;
-
     always_comb begin
         if(start) begin
             if(ray_in.direction.x == 0) begin
@@ -53,10 +52,10 @@ module AABB #(
             ray_hit_z = 0;
         end
     end
-
+    
     assign start_inv = start;
     assign skip_inv = (!ray_hit_x | !ray_hit_y | !ray_hit_z);
- 
+    
     RayDirection inv_ray_direction;
     logic inv_skip_out;
     logic inv_valid;
@@ -86,6 +85,7 @@ module AABB #(
     logic signed [WIDTH-1:0] tmin_out;
     
     logic ray_hit;
+
     logic valid_all;
     logic skip;
     
