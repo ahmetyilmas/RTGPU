@@ -34,16 +34,19 @@ module RayGenerator #(
     logic [PIXEL_WIDTH-1:0] pixel_x; //  0-639, 640
     logic [PIXEL_HEIGHT-1:0] pixel_y; // 0-479 480
     logic pixel_valid;
-
+    
+    localparam pixel_x_limit = `PIXEL_X-1;
+    localparam pixel_y_limit = `PIXEL_Y-1;
+    
     always_ff @(posedge clk) begin
         if(reset) begin
             pixel_x <= {PIXEL_WIDTH{1'b1}};
             pixel_y <= 0;
             pixel_valid <= 0;
         end else if(start) begin
-            if (pixel_x == `PIXEL_X) begin
+            if (pixel_x == pixel_x_limit) begin
                 pixel_x <= 0;
-                if (pixel_y == `PIXEL_Y)
+                if (pixel_y == pixel_y_limit)
                     pixel_y <= 0;
                 else
                     pixel_y <= pixel_y + 1;
@@ -59,10 +62,10 @@ module RayGenerator #(
     logic signed [WIDTH-1:0] u;
     logic signed [WIDTH-1:0] v;
     
-    logic [WIDTH-1:0] u_lut [0:639];
-    logic [WIDTH-1:0] v_lut [0:479];
-    logic [WIDTH-1:0] u_ff;
-    logic [WIDTH-1:0] v_ff;
+    logic signed [WIDTH-1:0] u_lut [0:pixel_x_limit];
+    logic signed [WIDTH-1:0] v_lut [0:pixel_y_limit];
+    logic signed [WIDTH-1:0] u_ff;
+    logic signed [WIDTH-1:0] v_ff;
 
     initial begin
         $readmemh("u_lut.hex", u_lut);
@@ -168,9 +171,9 @@ module RayGenerator #(
         .result(xy)
     );
     
-    assign right.x = yz - zy;
-    assign right.y = zx - xz;
-    assign right.z = xy - yx;
+    assign right.x = zy - yz;
+    assign right.y = xz - zx;
+    assign right.z = yx - xy;
     assign cross_valid_all = &cross_valid;
 
     Vec3 scaled_right;
