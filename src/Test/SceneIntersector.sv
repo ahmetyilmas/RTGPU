@@ -14,15 +14,13 @@ AABB ciktisinin rengi olur.
 module SceneIntersector();
     
     localparam WIDTH = `WIDTH;
-    localparam Q_BITS = `Q_BITS;
-    localparam DIV_COUNT = 24;
-    localparam MAX16 = `MAX_16;
-    localparam MIN16 = `MIN_16;
-    localparam TAG_SIZE = `TAG_SIZE;
+    localparam Q_BITS = `Q_BITS; //Q4.20
+    localparam MAX20 = `MAX_20;
+    localparam MIN20 = `MIN_20;
     localparam tan_fov = `tan_fov_half_16;
     localparam PIXEL_WIDTH = `PIXEL_WIDTH;
     localparam PIXEL_HEIGHT = `PIXEL_HEIGHT;
-    localparam OBJECT_COUNT = 1;
+    localparam OBJECT_COUNT = 3;
 
     Camera cam;
 
@@ -32,6 +30,7 @@ module SceneIntersector();
     logic start = 0;
 
     int counter = 0;
+    int rg_counter = 0;
     always #5 clk = ~clk;
 
 
@@ -42,12 +41,14 @@ module SceneIntersector();
     AABB aabb_box[2:0];
     AABB_result test_result[2:0];
     logic core_valid[2:0];
-
+    
+    
+    logic RG_w;
     RayGenerator #(
         .WIDTH(WIDTH),
         .Q_BITS(Q_BITS),
-        .MIN(MIN16),
-        .MAX(MAX16),
+        .MIN(MIN20),
+        .MAX(MAX20),
         .PIXEL_WIDTH(PIXEL_WIDTH),
         .PIXEL_HEIGHT(PIXEL_HEIGHT)
     ) RayGen (
@@ -58,17 +59,19 @@ module SceneIntersector();
         .ray_out(RG_ray_out),
         .valid_out(RayGen_valid)
     );
+    assign RG_w = RayGen_valid;
+    
     
     assign AABB_ray_in = RG_ray_out;
     
     genvar i;
     generate
-        for(i = 0; i < 1; i++) begin
+        for(i = 0; i < 3; i++) begin
             AABB #(
                 .WIDTH(WIDTH),
                 .Q_BITS(Q_BITS),
-                .MAX(MAX16),
-                .MIN(MIN16)
+                .MAX(MAX20),
+                .MIN(MIN20)
             ) AABB_CORE (
                 .clk(clk),
                 .reset(reset),
@@ -81,22 +84,33 @@ module SceneIntersector();
         end
     endgenerate
     
-    Min tmin;
-    //Color colors[2:0];
+    Min tmins[2:0];
+    Color colors[2:0];
     Color color_out;
+    Min tmin;
     
     
     
     integer file;
+    integer ray;
     initial begin
-        file = $fopen("C:/Users/Ahmet/Desktop/output.txt", "w"); // "w" = yazma modunda aç
-        if (file == 0) begin
-            $display("Dosya açılamadı!");
-            $finish;
-        end else begin
-            $display("Dosya açıldı.");
-        end
-        
+         file = $fopen("C:/Users/Ahmet/Desktop/output.txt", "w");
+           if (file == 0) begin
+               $display("Dosya açılamadı!");
+               $finish;
+           end else begin
+               $display("Dosya açıldı.");
+           end
+        /*
+        ray = $fopen("C:/Users/Ahmet/Desktop/RG_log.txt", "w");
+        if (ray == 0) begin
+           $display("RG_log açılamadı!");
+           $finish;
+       end else begin
+           $display("RG_log açıldı.");
+       end
+       */
+       
         reset = 1;
         start = 0;
         #10;
@@ -104,34 +118,35 @@ module SceneIntersector();
         start = 1;
         cam = '{
             origin : '{
-                x : 16'h0,
-                y : 16'h0,
-                z : 16'hD000
-            },
+                x : 20'h00000,
+                y : 20'h00000,
+                z : 20'hFE000   // -2.00
+            },            
             forward : '{
-                x : 16'h0000,
-                y : 16'h0000,
-                z : 16'h1000
+                x : 20'h00000,
+                y : 20'h00000,
+                z : 20'h01000   // +1.00
             },
             up : '{
             x : 16'd0,
             y : 16'h1000, // +1.0 yukarı yönü y ekseni
             z : 16'd0
             },
-            fov: 16'd2457,
-            aspect_ratio : 16'h1000      
+            fov: 20'd1934,
+            aspect_ratio : 20'h01000      
         };
-
-        aabb_box[0] = '{
-            min : '{
-                x : 16'hF000,
-                y : 16'h1000,
-                z : 16'h1000
+        
+        // Kırmızı Kutu
+        aabb_box[0] = '{        // (-1.0, +1.0, +1.0)
+            min : '{            
+                x : 20'h00400, // +0.25
+                y : 20'h00400, // +0.25
+                z : 20'hFF000  // -1.00
             },
             max : '{
-                x : 16'h1000,
-                y : 16'h3000,
-                z : 16'h3000
+                x : 20'h00C00, // +0.75
+                y : 20'h00C00, // +0.75
+                z : 20'h01000  // +1.00
             },
             color : '{
                 r : 8'hFF,
@@ -139,16 +154,17 @@ module SceneIntersector();
                 b : 8'h00
             }
         };
+        // Yeşil kutu
         aabb_box[1] = '{
             min : '{
-                x : 16'hE000,
-                y : 16'hE000,
-                z : 16'hE000
+                x : 24'hFF8000, // -0.50
+                y : 24'hFF8000, // -0.50
+                z : 24'h004000  // +0.25
             },
             max : '{
-                x : 16'hD000,
-                y : 16'hD000,
-                z : 16'hD000
+                x : 24'h008000, // +0.50
+                y : 24'hFFC000, // -0.25
+                z : 24'h008000  // +0.50
             },
             color : '{
                 r : 8'h00,
@@ -156,16 +172,17 @@ module SceneIntersector();
                 b : 8'h00
             }
         };
+        // Mavi kutu
         aabb_box[2] = '{
             min : '{
-                x : 16'hF000,
-                y : 16'h2000,
-                z : 16'hF000
+                x : 24'h024000, // +2.25
+                y : 24'h024000, // +2.25
+                z : 24'h024000  // +2.25
             },
             max : '{
-                x : 16'h1000,
-                y : 16'h4000,
-                z : 16'h1000
+                x : 24'h048000, // +4.50
+                y : 24'h048000, // +4.50
+                z : 24'h048000  // +4.50
             },
             color : '{
                 r : 8'h00,
@@ -178,18 +195,32 @@ module SceneIntersector();
         $finish;
     end
     logic write_enable;
-        
+    logic write_rg;
+    
+    assign write_rg = RayGen_valid;
+    
     always_ff @(posedge clk) begin
         if(reset) begin
-            tmin = MAX16;
-            color_out = '{r : 8'h00, g : 8'h00, b : 8'h00};
+            tmins[0] = MAX20;
+            tmins[1] = MAX20;
+            tmins[2] = MAX20;
+            color_out = '{r: 8'h00, g : 8'h00, b : 8'h00};
             write_enable = 0;
         end else begin
-            if(core_valid[0]/* && core_valid[1] && core_valid[2]*/) begin
+            if(core_valid[0] && core_valid[1] && core_valid[2]) begin
         
-                tmin = test_result[0].ray_hit ? test_result[0].tmin : MAX16;
-                color_out = test_result[0].ray_hit ? test_result[0].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
-        
+                tmins[0] = test_result[0].ray_hit ? test_result[0].tmin : MAX20;
+                colors[0] = test_result[0].ray_hit ? test_result[0].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
+                
+                tmins[1] = test_result[1].ray_hit ? test_result[1].tmin : MAX20;
+                colors[1] = test_result[1].ray_hit ? test_result[1].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
+                
+                tmins[2] = test_result[2].ray_hit ? test_result[2].tmin : MAX20;
+                colors[2] = test_result[2].ray_hit ? test_result[2].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
+               
+               color_out = colors[0];//tmins[0] < tmins[1] ? (tmins[0] < tmins[2] ? colors[0] : colors[2]) : (tmins[1] < tmins[2] ? colors[1] : colors[2]);
+                
+                
                 write_enable = 1;
             end else begin
                 write_enable = 0;
@@ -210,6 +241,19 @@ module SceneIntersector();
                 counter++;
             end
         end
-    
-
+        /*
+        always_ff @(posedge clk) begin
+            if(write_rg) begin
+                if(rg_counter < `PIXEL_X*`PIXEL_Y) begin
+                $fwrite(ray, "%0h %0h %0h\n", RG_ray_out.direction.x, RG_ray_out.direction.y, RG_ray_out.direction.z); // her satıra RGB
+                //$display("Dosyaya yazıldı. counter:", counter);
+                //$display("Renkler: %0d %0d %0d", color_out.r, color_out.g, color_out.b);
+                end else begin
+                    $fclose(ray);
+                    $finish;
+                end
+                rg_counter++;
+            end
+        end
+        */
 endmodule
