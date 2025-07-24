@@ -23,7 +23,7 @@ module NR_inv_dir_block #(
 
     localparam MSB = WIDTH+Q_BITS-1;
     localparam LSB = 0;
-
+    localparam logic [WIDTH-1:0] ONE = 1 << Q_BITS;
     logic [WIDTH+Q_BITS:0] skip_flag;
     
     always_ff @(posedge clk) begin
@@ -49,7 +49,7 @@ module NR_inv_dir_block #(
         .clk(clk),
         .reset(reset),
         .start(start),
-        .dividend_in({4'b0001, {(WIDTH-4){1'b0}}}),
+        .dividend_in(ONE),
         .divisor_in(RD_in.x),
         .quotient_out(quotient_x),
         .valid_out(valid_x)
@@ -63,7 +63,7 @@ module NR_inv_dir_block #(
         .clk(clk),
         .reset(reset),
         .start(start),
-        .dividend_in({4'b0001, {(WIDTH-4){1'b0}}}),
+        .dividend_in(ONE),
         .divisor_in(RD_in.y),
         .quotient_out(quotient_y),
         .valid_out(valid_y)
@@ -77,7 +77,7 @@ module NR_inv_dir_block #(
         .clk(clk),
         .reset(reset),
         .start(start),
-        .dividend_in({4'b0001, {(WIDTH-4){1'b0}}}),
+        .dividend_in(ONE),
         .divisor_in(RD_in.z),
         .quotient_out(quotient_z),
         .valid_out(valid_z)
