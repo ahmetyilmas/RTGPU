@@ -1,27 +1,35 @@
 `timescale 1ns / 1ps
 
 `include "../Types.sv"
-`include "../Parameters.sv"
+`include "Parameters.sv"
 
-module SceneIntersector#(
-        parameter int WIDTH = 20,
-        parameter int QBITS = 12, //Q4.20
-        parameter int MAX20 = 20'h7FFFF,
-        parameter int MIN20 = 20'h80000,
-        parameter int PIXEL_WIDTH = 3,
-        parameter int PIXEL_HEIGHT = 3,
-        parameter int PIXEL_X = 8,
-        parameter int PIXEL_Y = 8
-    )(
-        input clk,
-        input reset,
-        input start,
-        input Cam_t camera_in
-    );
+/*
+Bu modulde RayGenerator ile kameranin konumuna gore Ray olusturulur. Bu Ray'lere bir Tag atanir.
+Daha sonra Scene olusturulur. Scene 3 objeden olusur.
+Olusturulan 3 Scene objesi paralel olarak calisan 3 AABB modulune verilir.
+AABB modulunden Tag bilgisi, Color, tmin ve ray_hit ciktisi alinir.
+AABB modulunden alinan ciktilara gore Tag'ler eslesir ve ray_hit = 1 olan ciktilardan
+tmin'i en kucuk olan secilir. En sonunda o pixel'in rengi tmin'i en kucuk olan
+AABB ciktisinin rengi olur.
+*/
+
+module SceneIntersector();
+
+    localparam int WIDTH = `WIDTH;
+    localparam int Q_BITS = `Q_BITS; //Q4.20
+    localparam int MAX20 = `MAX_20;
+    localparam int MIN20 = `MIN_20;
+    localparam tan_fov = `tan_fov_half_16;
+    localparam int PIXEL_WIDTH = `PIXEL_WIDTH;
+    localparam int PIXEL_HEIGHT = `PIXEL_HEIGHT;
+    localparam int OBJECT_COUNT = 3;
 
     Camera cam;
 
 
+    logic clk = 0;
+    logic reset = 0;
+    logic start = 0;
 
     int counter = 0;
     int rg_counter = 0;
@@ -33,7 +41,7 @@ module SceneIntersector#(
     logic RayGen_valid;
 
     AABB aabb_box[3];
-    AABB_result test_result[3];
+    AABB_result_t test_result[3];
     logic core_valid[3];
 
 
@@ -60,7 +68,7 @@ module SceneIntersector#(
 
     genvar i;
     generate
-        for(i = 0; i < 3; i++) begin :AABB modules
+        for(i = 0; i < 3; i++) begin
             AABB #(
                 .WIDTH(WIDTH),
                 .Q_BITS(Q_BITS),
@@ -227,7 +235,7 @@ module SceneIntersector#(
     end
         always_ff @(posedge clk) begin
             if(write_enable) begin
-                if(counter < PIXEL_X * PIXEL_Y) begin
+                if(counter < `PIXEL_X*`PIXEL_Y) begin
                 $fwrite(file, "%0d %0d %0d\n", color_out.r, color_out.g, color_out.b);
                 $display("Dosyaya yazıldı. counter:", counter);
                 $display("Renkler: %0d %0d %0d", color_out.r, color_out.g, color_out.b);
