@@ -1,31 +1,6 @@
 `ifndef TYPES_SV
 `define TYPES_SV
 
-`define WIDTH 20
-`define Q_BITS 12 // Q7.12 format
-
-`define MAX_16 16'h7FFF       // Q7.12 format
-`define MIN_16 16'h8000
-`define MAX_32 32'h7FFFFFFF   // Q16.16 format
-`define MIN_32 32'h80000000
-`define MAX_24 24'h7FFFFF     // Q7.16 format
-`define MIN_24 24'h800000
-`define MIN_20 20'h80000      // Q7.12 format
-`define MAX_20 20'h7FFFF
-
-`define tan_fov_half_16 16'h093D // tan(fov/2) fov = 60
-
-
-`define PIXEL_WIDTH  4 // 2^4 = 16 
-`define PIXEL_HEIGHT 4 // 2^4 = 16
-
-`define PIXEL_X 8     // 640
-`define PIXEL_Y 8     // 480
-
-`define TAG_SIZE 8 
-
-`define BOX_COUNT 3
-
 typedef struct packed {
     logic signed [`WIDTH-1:0] x;
     logic signed [`WIDTH-1:0] y;
