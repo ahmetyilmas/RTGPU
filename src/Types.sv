@@ -146,14 +146,6 @@ typedef struct packed {
 } AABB_result_t;
 
 typedef struct packed {
-    AABB box;
-    logic ray_hit;
-    logic [`WIDTH-1:0] tmin;
-    Vec3_t normal;
-} Intersection_result_t;
-
-
-typedef struct packed {
     RayOrigin origin;                           // kamera konumu
     Vec3 forward;                               // bakis yonu
     Vec3 up;                                    // yukari bakis yonu
@@ -169,11 +161,9 @@ typedef struct packed {
     logic signed [`WIDTH-1:0] aspect_ratio;     // genislik/yukseklik orani
 }Camera_t;
 
-typedef struct {
-  logic [31:0] addr;
-  logic [31:0] data;
-  logic        valid;
-  logic        write_en;
-} axi_transaction_t;
+typedef struct packed {
+    Ray ray;        // isin yonu ve orjini
+    Color ray_color;// isinin rengi
+} LightSource_t;
 
 `endif
