@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 module d_ff#(
-    WIDTH = `WIDTH
+    parameter int WIDTH = `WIDTH
 )(
     input clk,
     input reset,
@@ -19,5 +19,5 @@ module d_ff#(
     end
 
     assign q_out = q_ff;
-    
+
 endmodule
