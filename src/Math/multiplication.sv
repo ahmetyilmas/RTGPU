@@ -3,8 +3,8 @@
 
 // 1 cycle multiplier
 module multiplication #(
-    parameter WIDTH  = `WIDTH,
-    parameter Q_BITS = `Q_BITS
+    parameter int WIDTH  = `WIDTH,
+    parameter int Q_BITS = `Q_BITS
 )(
     input start,
     input clk,
@@ -16,7 +16,7 @@ module multiplication #(
 
     logic [2*WIDTH-1:0]result_ff;
     logic valid_ff;
-    
+
     always @(posedge clk) begin
         result_ff <= a * b;
         valid_ff <= start;
