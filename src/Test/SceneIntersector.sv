@@ -94,7 +94,7 @@ module SceneIntersector();
     integer file;
     integer ray;
     initial begin
-         file = $fopen("C:/Users/Ahmet/Desktop/output.txt", "w");
+         file = $fopen("C:/Users/Ahmet/Desktop/output.txt", "w"); // "w" = yazma modunda aç
            if (file == 0) begin
                $display("Dosya açılamadı!");
                $finish;
@@ -121,7 +121,7 @@ module SceneIntersector();
                 x : 20'h00000,
                 y : 20'h00000,
                 z : 20'hFE000   // -2.00
-            },            
+            },
             forward : '{
                 x : 20'h00000,
                 y : 20'h00000,
@@ -133,14 +133,14 @@ module SceneIntersector();
             z : 16'd0
             },
             fov: 20'd1934,
-            aspect_ratio : 20'h01000      
+            aspect_ratio : 20'h01000
         };
         
         // Kırmızı Kutu
         aabb_box[0] = '{        // (-1.0, +1.0, +1.0)
             min : '{            
-                x : 20'h00400, // +0.25
-                y : 20'h00400, // +0.25
+                x : 20'h00000, //  0.00
+                y : 20'h00000, //  0.00
                 z : 20'hFF000  // -1.00
             },
             max : '{
@@ -157,14 +157,14 @@ module SceneIntersector();
         // Yeşil kutu
         aabb_box[1] = '{
             min : '{
-                x : 24'hFF8000, // -0.50
-                y : 24'hFF8000, // -0.50
-                z : 24'h004000  // +0.25
+                x : 20'hFF400, // -0.75
+                y : 20'h00000, //  0.00
+                z : 20'hFF000  // -1.00
             },
             max : '{
-                x : 24'h008000, // +0.50
-                y : 24'hFFC000, // -0.25
-                z : 24'h008000  // +0.50
+                x : 20'h00000, //  0.00
+                y : 20'h00C00, // +0.75
+                z : 20'h01000  // +1.00
             },
             color : '{
                 r : 8'h00,
@@ -175,14 +175,14 @@ module SceneIntersector();
         // Mavi kutu
         aabb_box[2] = '{
             min : '{
-                x : 24'h024000, // +2.25
-                y : 24'h024000, // +2.25
-                z : 24'h024000  // +2.25
+                x : 20'hFF400, // -0.75
+                y : 20'hFF400, // -0.75
+                z : 20'hFF000  // -1.00
             },
             max : '{
-                x : 24'h048000, // +4.50
-                y : 24'h048000, // +4.50
-                z : 24'h048000  // +4.50
+                x : 20'h00C00, // +0.75
+                y : 20'h00000, //  0.00
+                z : 20'h01000  // +1.00
             },
             color : '{
                 r : 8'h00,
@@ -196,9 +196,9 @@ module SceneIntersector();
     end
     logic write_enable;
     logic write_rg;
-    
+
     assign write_rg = RayGen_valid;
-    
+
     always_ff @(posedge clk) begin
         if(reset) begin
             tmins[0] = MAX20;
@@ -208,19 +208,19 @@ module SceneIntersector();
             write_enable = 0;
         end else begin
             if(core_valid[0] && core_valid[1] && core_valid[2]) begin
-        
+
                 tmins[0] = test_result[0].ray_hit ? test_result[0].tmin : MAX20;
                 colors[0] = test_result[0].ray_hit ? test_result[0].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
-                
+
                 tmins[1] = test_result[1].ray_hit ? test_result[1].tmin : MAX20;
                 colors[1] = test_result[1].ray_hit ? test_result[1].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
-                
+
                 tmins[2] = test_result[2].ray_hit ? test_result[2].tmin : MAX20;
                 colors[2] = test_result[2].ray_hit ? test_result[2].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
-               
-               color_out = colors[0];//tmins[0] < tmins[1] ? (tmins[0] < tmins[2] ? colors[0] : colors[2]) : (tmins[1] < tmins[2] ? colors[1] : colors[2]);
-                
-                
+
+               color_out = tmins[0] < tmins[1] ? (tmins[0] < tmins[2] ? colors[0] : colors[2]) : (tmins[1] < tmins[2] ? colors[1] : colors[2]);
+
+
                 write_enable = 1;
             end else begin
                 write_enable = 0;
@@ -233,7 +233,7 @@ module SceneIntersector();
                 $fwrite(file, "%0d %0d %0d\n", color_out.r, color_out.g, color_out.b); // her satıra RGB
                 $display("Dosyaya yazıldı. counter:", counter);
                 $display("Renkler: %0d %0d %0d", color_out.r, color_out.g, color_out.b);
-                
+
                 end else begin
                     $fclose(file);
                     $finish;
