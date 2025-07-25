@@ -1,33 +1,27 @@
 `timescale 1ns / 1ps
-`include "Types.sv"
 
-/*
-Bu modulde RayGenerator ile kameranin konumuna gore Ray olusturulur. Bu Ray'lere bir Tag atanir. 
-Daha sonra Scene olusturulur. Scene 3 objeden olusur. 
-Olusturulan 3 Scene objesi paralel olarak calisan 3 AABB modulune verilir.
-AABB modulunden Tag bilgisi, Color, tmin ve ray_hit ciktisi alinir.
-AABB modulunden alinan ciktilara gore Tag'ler eslesir ve ray_hit = 1 olan ciktilardan
-tmin'i en kucuk olan secilir. En sonunda o pixel'in rengi tmin'i en kucuk olan 
-AABB ciktisinin rengi olur.
-*/
+`include "../Types.sv"
+`include "../Parameters.sv"
 
-module SceneIntersector();
-    
-    localparam WIDTH = `WIDTH;
-    localparam Q_BITS = `Q_BITS; //Q4.20
-    localparam MAX20 = `MAX_20;
-    localparam MIN20 = `MIN_20;
-    localparam tan_fov = `tan_fov_half_16;
-    localparam PIXEL_WIDTH = `PIXEL_WIDTH;
-    localparam PIXEL_HEIGHT = `PIXEL_HEIGHT;
-    localparam OBJECT_COUNT = 3;
+module SceneIntersector#(
+        parameter int WIDTH = 20,
+        parameter int QBITS = 12, //Q4.20
+        parameter int MAX20 = 20'h7FFFF,
+        parameter int MIN20 = 20'h80000,
+        parameter int PIXEL_WIDTH = 3,
+        parameter int PIXEL_HEIGHT = 3,
+        parameter int PIXEL_X = 8,
+        parameter int PIXEL_Y = 8
+    )(
+        input clk,
+        input reset,
+        input start,
+        input Cam_t camera_in
+    );
 
     Camera cam;
 
 
-    logic clk = 0;
-    logic reset = 0;
-    logic start = 0;
 
     int counter = 0;
     int rg_counter = 0;
@@ -38,11 +32,11 @@ module SceneIntersector();
     Ray RG_ray_out;
     logic RayGen_valid;
 
-    AABB aabb_box[2:0];
-    AABB_result test_result[2:0];
-    logic core_valid[2:0];
-    
-    
+    AABB aabb_box[3];
+    AABB_result test_result[3];
+    logic core_valid[3];
+
+
     logic RG_w;
     RayGenerator #(
         .WIDTH(WIDTH),
@@ -60,13 +54,13 @@ module SceneIntersector();
         .valid_out(RayGen_valid)
     );
     assign RG_w = RayGen_valid;
-    
-    
+
+
     assign AABB_ray_in = RG_ray_out;
-    
+
     genvar i;
     generate
-        for(i = 0; i < 3; i++) begin
+        for(i = 0; i < 3; i++) begin :AABB modules
             AABB #(
                 .WIDTH(WIDTH),
                 .Q_BITS(Q_BITS),
@@ -83,14 +77,14 @@ module SceneIntersector();
             );
         end
     endgenerate
-    
-    Min tmins[2:0];
-    Color colors[2:0];
+
+    Min tmins[3];
+    Color colors[3];
     Color color_out;
     Min tmin;
-    
-    
-    
+
+
+
     integer file;
     integer ray;
     initial begin
@@ -110,7 +104,7 @@ module SceneIntersector();
            $display("RG_log açıldı.");
        end
        */
-       
+
         reset = 1;
         start = 0;
         #10;
@@ -135,10 +129,10 @@ module SceneIntersector();
             fov: 20'd1934,
             aspect_ratio : 20'h01000
         };
-        
+
         // Kırmızı Kutu
         aabb_box[0] = '{        // (-1.0, +1.0, +1.0)
-            min : '{            
+            min : '{
                 x : 20'h00000, //  0.00
                 y : 20'h00000, //  0.00
                 z : 20'hFF000  // -1.00
@@ -210,15 +204,19 @@ module SceneIntersector();
             if(core_valid[0] && core_valid[1] && core_valid[2]) begin
 
                 tmins[0] = test_result[0].ray_hit ? test_result[0].tmin : MAX20;
-                colors[0] = test_result[0].ray_hit ? test_result[0].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
+                colors[0] = test_result[0].ray_hit ?
+                    test_result[0].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
 
                 tmins[1] = test_result[1].ray_hit ? test_result[1].tmin : MAX20;
-                colors[1] = test_result[1].ray_hit ? test_result[1].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
+                colors[1] = test_result[1].ray_hit ?
+                    test_result[1].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
 
                 tmins[2] = test_result[2].ray_hit ? test_result[2].tmin : MAX20;
-                colors[2] = test_result[2].ray_hit ? test_result[2].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
+                colors[2] = test_result[2].ray_hit ?
+                    test_result[2].box.color : '{r : 8'h00, g : 8'h00, b : 8'h00};
 
-               color_out = tmins[0] < tmins[1] ? (tmins[0] < tmins[2] ? colors[0] : colors[2]) : (tmins[1] < tmins[2] ? colors[1] : colors[2]);
+               color_out = tmins[0] < tmins[1] ? (tmins[0] < tmins[2] ? colors[0] : colors[2]) :
+                    (tmins[1] < tmins[2] ? colors[1] : colors[2]);
 
 
                 write_enable = 1;
@@ -229,8 +227,8 @@ module SceneIntersector();
     end
         always_ff @(posedge clk) begin
             if(write_enable) begin
-                if(counter < `PIXEL_X*`PIXEL_Y) begin
-                $fwrite(file, "%0d %0d %0d\n", color_out.r, color_out.g, color_out.b); // her satıra RGB
+                if(counter < PIXEL_X * PIXEL_Y) begin
+                $fwrite(file, "%0d %0d %0d\n", color_out.r, color_out.g, color_out.b);
                 $display("Dosyaya yazıldı. counter:", counter);
                 $display("Renkler: %0d %0d %0d", color_out.r, color_out.g, color_out.b);
 
