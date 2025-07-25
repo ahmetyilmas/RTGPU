@@ -1,8 +1,8 @@
 `ifndef PARAMETERS_SV
 `define PARAMETERS_SV
 
-`define WIDTH 20
-`define Q_BITS 12   // Q7.12 format
+`define WIDTH  24
+`define Q_BITS 12   // Q11.12 format
 
 // Q3.12 format
 `define MAX_16 16'h7FFF
@@ -23,6 +23,10 @@
 // 8x8 cozunurluk.
 `define PIXEL_X 8     // 640
 `define PIXEL_Y 8     // 480
+
+`define PIXEL_WIDTH  3 // 2^10 = 1024 640p icin yeterli
+`define PIXEL_HEIGHT 3 // 2^9 = 512 480p icin yeterli
+
 
 `define TANFOVHALF_16 16'h093D // tan(fov/2) fov = 60
 
