@@ -166,4 +166,10 @@ typedef struct packed {
     Color ray_color;// isinin rengi
 } LightSource_t;
 
+typedef struct packed {
+    logic [7:0] r;
+    logic [7:0] g;
+    logic [7:0] b;
+} SKYBOX_COLOR_t;
+
 `endif
