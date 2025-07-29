@@ -28,7 +28,9 @@ module rgb_multiplication #(
         end
     end
 
-    assign result_out[Q_BITS+RGB_WIDTH-1:Q_BITS] = result_ff[2*RGB_WIDTH-1:RGB_WIDTH];
+    assign result_out = 
+    {{(WIDTH-(Q_BITS+RGB_WIDTH)){1'b0}}, result_ff[2*RGB_WIDTH-1:RGB_WIDTH], {(Q_BITS){1'b0}}};
+
     assign valid_out = valid_ff;
 
 endmodule
