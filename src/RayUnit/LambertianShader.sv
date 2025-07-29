@@ -3,9 +3,10 @@
 `include "../Parameters.sv"
 
 /*
-    Q11.12 icin sentez sonuclari:
-    LUT:251
-    DSP:3
+    Q11.12, 8 bit RGB icin sentez sonuclari:
+    LUT:277,
+    FF: 17,
+    DSP:12
 */
 
 module LambertianShader #(
