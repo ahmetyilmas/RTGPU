@@ -10,13 +10,13 @@
 
 module LambertianShader #(
     parameter int WIDTH = 24,
-    parameter int Q_BITS = 12
+    parameter int Q_BITS = 12,
+    parameter int RGB_WIDTH = 8
 )(
     input clk,
     input reset,
     input start,
     input AABB_result_t aabb_in,          // AABB nesnesinin bilgileri
-    input RayDirection light_direction_in,// Gelen isin yonu
     input LightSource_t lightSource_in,
     output Color finalColor_out,
     output logic valid_out
@@ -40,17 +40,17 @@ module LambertianShader #(
         assign normal_y = aabb_in.normal.y;
         assign normal_z = aabb_in.normal.z;
 
-        assign dir_x = light_direction_in.x;
-        assign dir_y = light_direction_in.y;
-        assign dir_z = light_direction_in.z;
+        assign dir_x = lightSource_in.ray.direction.x;
+        assign dir_y = lightSource_in.ray.direction.y;
+        assign dir_z = lightSource_in.ray.direction.z;
 
         assign AABB_color = aabb_in.box.color;
         assign light_color = lightSource_in.ray_color;
 
 
-        // Stage 1: (Nx*Lx)+(Ny*Ly)+(Nz*Lz)
+        // Stage 1: N*L ve rgb*rgb carpimlarini yap
 
-        logic [2:0]stage_1_valid;
+        logic [5:0]stage_1_valid;
 
         multiplication #(
             .WIDTH(WIDTH),
@@ -86,103 +86,59 @@ module LambertianShader #(
             .valid(stage_1_valid[2])
         );
 
+        logic [WIDTH-1:0] rr_result;
+        logic [WIDTH-1:0] gg_result;
+        logic [WIDTH-1:0] bb_result;
+
+        rgb_multiplication #(
+            .WIDTH(WIDTH),
+            .Q_BITS(Q_BITS),
+            .RGB_WIDTH(RGB_WIDTH)
+        ) rr_mul (
+            .clk(clk),
+            .start(start),
+            .a_in(light_color.r),
+            .b_in(AABB_color.r),
+            .result_out(rr_result),
+            .valid_out(stage_1_valid[3])
+        );
+
+        rgb_multiplication #(
+            .WIDTH(WIDTH),
+            .Q_BITS(Q_BITS),
+            .RGB_WIDTH(RGB_WIDTH)
+        ) gg_mul (
+            .clk(clk),
+            .start(start),
+            .a_in(light_color.g),
+            .b_in(AABB_color.g),
+            .result_out(gg_result),
+            .valid_out(stage_1_valid[4])
+        );
+        rgb_multiplication #(
+            .WIDTH(WIDTH),
+            .Q_BITS(Q_BITS),
+            .RGB_WIDTH(RGB_WIDTH)
+        ) bb_mul (
+            .clk(clk),
+            .start(start),
+            .a_in(light_color.b),
+            .b_in(AABB_color.b),
+            .result_out(bb_result),
+            .valid_out(stage_1_valid[5])
+        );
+
         assign sum = &stage_1_valid ? dot_x + dot_y + dot_z: 0;
 
 
         assign dot = sum < 0 ? 0 : sum;
 
-        // 8 bit RGB degerlerini kullanilan Q formata cevir
 
-        logic signed [WIDTH-1:0] light_rq;
-        logic signed [WIDTH-1:0] light_gq;
-        logic signed [WIDTH-1:0] light_bq;
-        logic signed [WIDTH-1:0] aabb_rq;
-        logic signed [WIDTH-1:0] aabb_gq;
-        logic signed [WIDTH-1:0] aabb_bq;
+        logic stage_2_start = &stage_1_valid;
 
-        logic rgbq_valid;
-
-        always_ff @(posedge clk) begin
-            if(reset) begin
-                light_rq   <= 0;
-                light_gq   <= 0;
-                light_bq   <= 0;
-                aabb_rq    <= 0;
-                aabb_gq    <= 0;
-                aabb_bq    <= 0;
-                rgbq_valid <= 0;
-            end else begin
-                light_rq[WIDTH-8:Q_BITS] <= light_color.r;
-                light_gq[WIDTH-8:Q_BITS] <= light_color.g;
-                light_bq[WIDTH-8:Q_BITS] <= light_color.b;
-                aabb_rq [WIDTH-8:Q_BITS] <= AABB_color.r;
-                aabb_gq [WIDTH-8:Q_BITS] <= AABB_color.g;
-                aabb_bq [WIDTH-8:Q_BITS] <= AABB_color.b;
-                rgbq_valid <= 1;
-            end
-        end
-
-        logic stage_2_start = rgbq_valid & (&stage_1_valid);
-
-        // Stage 2: r*r, g*g, b*b carpimlarini yap ve onceki
-        // etapta hesaplanan dot degerini ff'e at
+        // Stage 2: dot * rgb_result
 
         logic [2:0]stage_2_valid;
-
-        logic [WIDTH-1:0] rr_result;
-        logic [WIDTH-1:0] gg_result;
-        logic [WIDTH-1:0] bb_result;
-
-        logic [WIDTH-1:0]dot_ff_out;
-
-        multiplication #(
-            .WIDTH(WIDTH),
-            .Q_BITS(Q_BITS)
-        ) mulr (
-            .clk(clk),
-            .start(stage_2_start),
-            .a(light_rq),
-            .b(aabb_rq),
-            .result(rr_result),
-            .valid(stage_2_valid[0])
-        );
-        multiplication #(
-            .WIDTH(WIDTH),
-            .Q_BITS(Q_BITS)
-        ) mulg (
-            .clk(clk),
-            .start(stage_2_start),
-            .a(light_gq),
-            .b(aabb_gq),
-            .result(gg_result),
-            .valid(stage_2_valid[1])
-        );
-        multiplication #(
-            .WIDTH(WIDTH),
-            .Q_BITS(Q_BITS)
-        ) mulb (
-            .clk(clk),
-            .start(stage_2_start),
-            .a(light_bq),
-            .b(aabb_bq),
-            .result(bb_result),
-            .valid(stage_2_valid[2])
-        );
-
-        d_ff #(
-            .WIDTH(WIDTH)
-        )(
-            .clk(stage_2_start & clk),
-            .reset(reset),
-            .data_in(dot),
-            .q_out(dot_ff_out)
-        );
-
-        logic stage_3_start = &stage_2_valid;
-
-        // Stage 3: dot * rgb_result
-
-        logic [3:0]stage_3_valid;
 
         logic [WIDTH-1:0]red;
         logic [WIDTH-1:0]blue;
@@ -193,41 +149,41 @@ module LambertianShader #(
             .Q_BITS(Q_BITS)
         ) rdot (
             .clk(clk),
-            .start(stage_3_start),
+            .start(stage_2_start),
             .a(rr_result),
-            .b(dot_ff_out),
+            .b(dot),
             .result(red),
-            .valid(stage_3_valid[0])
+            .valid(stage_2_valid[0])
         );
         multiplication #(
             .WIDTH(WIDTH),
             .Q_BITS(Q_BITS)
         ) gdot (
             .clk(clk),
-            .start(stage_3_start),
+            .start(stage_2_start),
             .a(gg_result),
-            .b(dot_ff_out),
+            .b(dot),
             .result(green),
-            .valid(stage_3_valid[1])
+            .valid(stage_2_valid[1])
         );
         multiplication #(
             .WIDTH(WIDTH),
             .Q_BITS(Q_BITS)
         ) bdot (
             .clk(clk),
-            .start(stage_3_start),
+            .start(stage_2_start),
             .a(bb_result),
-            .b(dot_ff_out),
+            .b(dot),
             .result(blue),
-            .valid(stage_3_valid[2])
+            .valid(stage_2_valid[2])
         );
 
         always_comb begin
-            if(&stage_3_valid) begin
+            if(&stage_2_valid) begin
                 finalColor_out = '{
-                    r: red  [WIDTH-1:WIDTH-8],
-                    g: green[WIDTH-1:WIDTH-8],
-                    b: blue [WIDTH-1:WIDTH-8]
+                    r: red  [Q_BITS+RGB_WIDTH-1:Q_BITS],
+                    g: green[Q_BITS+RGB_WIDTH-1:Q_BITS],
+                    b: blue [Q_BITS+RGB_WIDTH-1:Q_BITS]
                 };
                 valid_out = 1;
             end else begin
