@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
-`include "../Types.sv"
-`include "../Parameters.sv"
+`include "Types.sv"
+`include "Parameters.sv"
 
 /*
     Q11.12, 8 bit RGB icin sentez sonuclari:
@@ -8,7 +8,10 @@
     FF: 17,
     DSP:12
 */
-
+/*
+    cikislar reg tipinde oldugundan diger modullerde kullanilirken
+    bu modulun cikislari wire'a baglanip kullanilmali!!!
+*/
 module LambertianShader #(
     parameter int WIDTH = 24,
     parameter int Q_BITS = 12,
@@ -22,6 +25,13 @@ module LambertianShader #(
     output Color finalColor_out,
     output logic valid_out
 );
+
+        localparam SKYBOX_COLOR_t SKYBOX_COLOR = '{r:0, g:0, b:8'd128};
+
+        logic ray_hit;
+        logic ray_hit_ff_1;
+        logic ray_hit_ff_2;
+        assign ray_hit = aabb_in.ray_hit;
 
         logic signed [WIDTH-1:0]dot_x;
         logic signed [WIDTH-1:0]dot_y;
@@ -135,7 +145,13 @@ module LambertianShader #(
         assign dot = sum < 0 ? 0 : sum;
 
 
-        logic stage_2_start = &stage_1_valid;
+        logic stage_2_start;
+        assign stage_2_start = &stage_1_valid;
+
+        // sonraki asamada SKYBOX eklemek icin ray_hit'i FF'e at
+        always_ff @(posedge clk) begin
+            ray_hit_ff_1 <= ray_hit;
+        end
 
         // Stage 2: dot * rgb_result
 
@@ -179,21 +195,29 @@ module LambertianShader #(
             .valid(stage_2_valid[2])
         );
 
-        always_comb begin
+        always_ff @(posedge clk) begin
+            ray_hit_ff_2 <= ray_hit_ff_1;
+        end
+
+        always_ff @(posedge clk) begin
             if(&stage_2_valid) begin
-                finalColor_out = '{
-                    r: red  [Q_BITS+RGB_WIDTH-1:Q_BITS],
-                    g: green[Q_BITS+RGB_WIDTH-1:Q_BITS],
-                    b: blue [Q_BITS+RGB_WIDTH-1:Q_BITS]
-                };
-                valid_out = 1;
+                if(ray_hit_ff_2) begin
+                    finalColor_out <= '{
+                        r: red  [Q_BITS+RGB_WIDTH-1:Q_BITS],
+                        g: green[Q_BITS+RGB_WIDTH-1:Q_BITS],
+                        b: blue [Q_BITS+RGB_WIDTH-1:Q_BITS]
+                    };
+                end else begin
+                    finalColor_out <= SKYBOX_COLOR;
+                end
+                valid_out <= 1;
             end else begin
-                finalColor_out = '{
+                finalColor_out <= '{
                     r: 8'h00,
                     g: 8'h00,
                     b: 8'h00
                 };
-                valid_out = 0;
+                valid_out <= 0;
             end
         end
 
