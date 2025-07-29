@@ -1,25 +1,34 @@
 `timescale 1ns/1ps
-`include "../Types.sv"
-`include "../Parameters.sv"
+`include "Types.sv"
+`include "Parameters.sv"
 
-module rgb_multiplication (
+module rgb_multiplication #(
+    parameter int WIDTH = 24,
+    parameter int Q_BITS = 12,
+    parameter int RGB_WIDTH = 8
+)(
     input clk,
     input start,
-    input [7:0]a,
-    input [7:0]b,
-    output logic [7:0]result,
-    output valid
+    input unsigned  [RGB_WIDTH-1:0] a_in,
+    input unsigned  [RGB_WIDTH-1:0] b_in,
+    output logic signed [WIDTH-1:0] result_out,
+    output valid_out
 );
 
-    logic [15:0]result_ff;
+    logic [2*RGB_WIDTH-1:0]result_ff;
     logic valid_ff;
 
     always @(posedge clk) begin
-        result_ff <= a * b;
-        valid_ff <= start;
+        if(start) begin
+            result_ff <= a_in * b_in;
+            valid_ff <= 1;
+        end else begin
+            result_ff <= 0;
+            valid_ff <= 0;
+        end
     end
 
-    assign result = result_ff[15:8];
-    assign valid = valid_ff;
+    assign result_out[Q_BITS+RGB_WIDTH-1:Q_BITS] = result_ff[2*RGB_WIDTH-1:RGB_WIDTH];
+    assign valid_out = valid_ff;
 
 endmodule
