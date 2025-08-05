@@ -30,4 +30,6 @@
 
 `define TANFOVHALF_16 16'h093D // tan(fov/2) fov = 60
 
+`define EPSILON_24 24'h000001;
+
 `endif
