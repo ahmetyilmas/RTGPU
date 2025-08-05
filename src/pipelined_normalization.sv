@@ -24,12 +24,12 @@ module pipelined_normalization #(
     output RayDirection normalized_ray_out, // normalized x,y,z directions
     output logic valid_out
     );
-    
+
     logic mul_valid;
-    
+
     // isin yonlerinin kareleri
     RayDirection_sqr RD_square;
-    
+
     direction_square #(
     .WIDTH(WIDTH),
     .Q_BITS(Q_BITS)
@@ -40,7 +40,7 @@ module pipelined_normalization #(
     .valid_out(mul_valid),
     .RDS_out(RD_square)
     );
-    
+
     wire [WIDTH-1:0]sum;
     RayDirection RD_sqrt_in;
 
@@ -53,7 +53,7 @@ module pipelined_normalization #(
 
     logic sqrt_valid;
     RayDirection_len RD_len;
-    
+
     direction_sqroot #(
     .WIDTH(WIDTH),
     .Q_BITS(Q_BITS),
@@ -68,7 +68,7 @@ module pipelined_normalization #(
     .RDLEN_out(RD_len),
     .overflow_out()
     );
-    
+
     NR_div_block #(
         .WIDTH(WIDTH),
         .Q_BITS(Q_BITS),
@@ -82,5 +82,5 @@ module pipelined_normalization #(
         .valid_out(valid_out),
         .normalized_ray_out(normalized_ray_out)
     );
-    
+
 endmodule
