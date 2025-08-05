@@ -17,6 +17,7 @@ module SceneIntersector();
 
     localparam int WIDTH = 24;
     localparam int Q_BITS = 12; //Q4.20
+    localparam int RGB_WIDTH = 8;
     localparam int MAX24 = 24'h7FFFFF;
     localparam int MIN24 = 24'h800000;
     localparam int PIXEL_WIDTH = 8;
@@ -38,9 +39,9 @@ module SceneIntersector();
     Ray RG_ray_out;
     logic RayGen_valid;
 
-    AABB aabb_box[4];
-    AABB_result_t test_result[4];
-    logic core_valid[4];
+    AABB aabb_box[8];
+    AABB_result_t test_result[8];
+    logic [7:0]core_valid;
 
     AABB_result_t no_hit = '{
         box: '{
@@ -92,7 +93,7 @@ module SceneIntersector();
 
     genvar i;
     generate
-        for(i = 0; i < 4; i++) begin
+        for(i = 0; i < 8; i++) begin
             AABB #(
                 .WIDTH(WIDTH),
                 .Q_BITS(Q_BITS),
@@ -110,26 +111,39 @@ module SceneIntersector();
         end
     endgenerate
 
-    Min tmins[4];
+    Min tmins[9];
     AABB_result_t aabb_final;
+    AABB_result_t aabb_1;
+    AABB_result_t aabb_2;
+
     logic write_enable;
     logic LS_start;
     assign LS_start = core_valid[0];
     always_comb  begin
-            if(core_valid[0] && core_valid[1] && core_valid[2] && core_valid[3]) begin
+            if(&core_valid) begin
 
-                tmins[0] = test_result[0].ray_hit ? test_result[0].tmin : MAX24;
-                tmins[1] = test_result[1].ray_hit ? test_result[1].tmin : MAX24;
-                tmins[2] = test_result[2].ray_hit ? test_result[2].tmin : MAX24;
-                tmins[3] = test_result[3].ray_hit ? test_result[3].tmin : MAX24;
+                for(int i = 0; i < 9; i++) begin
+                    tmins[i] = test_result[i].ray_hit ? test_result[i].tmin : MAX24;
+                end
 
                 if(!test_result[0].ray_hit && !test_result[1].ray_hit &&
                     !test_result[2].ray_hit && !test_result[3].ray_hit) begin
-                    aabb_final = no_hit;
+                    aabb_1 = no_hit;
                 end else begin
-                    aabb_final = tmins[0] < tmins[1] ? (tmins[0] < tmins[2] ? (tmins[0] < tmins[3] ? test_result[0] : test_result[3]):
-                    tmins[2] < tmins[3] ? test_result[2] : test_result[3]) : (tmins[1] < tmins[2] ? (tmins[1] < tmins[3] ? test_result[1] : test_result[3]) :
+                    aabb_1 = tmins[0] < tmins[1] ? (tmins[0] < tmins[2] ? (tmins[0] < tmins[3] ? test_result[0] : test_result[3]):
+                    tmins[2] < tmins[3] ? test_result[2] : test_result[3]):
+                    (tmins[1] < tmins[2] ? (tmins[1] < tmins[3] ? test_result[1] : test_result[3]):
                     tmins[2] < tmins[3] ? test_result[2] : test_result[3]);
+                end
+
+                if(!test_result[4].ray_hit && !test_result[5].ray_hit &&
+                    !test_result[6].ray_hit && !test_result[7].ray_hit) begin
+                    aabb_2 = no_hit;
+                end else begin
+                    aabb_2 = tmins[4] < tmins[5] ? (tmins[4] < tmins[6] ? (tmins[4] < tmins[7] ? test_result[4] : test_result[7]):
+                    tmins[6] < tmins[7] ? test_result[6] : test_result[7]):
+                    (tmins[5] < tmins[6] ? (tmins[5] < tmins[7] ? test_result[5] : test_result[7]):
+                    tmins[6] < tmins[7] ? test_result[6] : test_result[7]);
                 end
 
             end else begin
