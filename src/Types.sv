@@ -162,8 +162,16 @@ typedef struct packed {
 }Camera_t;
 
 typedef struct packed {
-    Ray ray;        // isin yonu ve orjini
+    Ray _ray;        // isin yonu ve orjini
     Color ray_color;// isinin rengi
+
+    logic signed [`WIDTH-1:0]min_x;
+    logic signed [`WIDTH-1:0]min_y;
+    logic signed [`WIDTH-1:0]min_z;
+
+    logic signed [`WIDTH-1:0]max_x;
+    logic signed [`WIDTH-1:0]max_y;
+    logic signed [`WIDTH-1:0]max_z;
 } LightSource_t;
 
 typedef struct packed {
