@@ -7,8 +7,8 @@
     BRAM: 1.50
 */
 module RD_fifo #(
-    parameter WIDTH = `WIDTH,
-    parameter DEPTH = 20
+    parameter int WIDTH = `WIDTH,
+    parameter int DEPTH = 20
     )(
     input clk,
     input reset,
@@ -20,7 +20,7 @@ module RD_fifo #(
     output logic overflow_out,
     output logic valid_out
     );
-    
+
     wire [WIDTH-1:0]    dir_x;
     wire [WIDTH-1:0]    dir_y;
     wire [WIDTH-1:0]    dir_z;
@@ -50,7 +50,7 @@ module RD_fifo #(
             rptr <= 0;
             fifo_count <= 0;
             overflow <= 0;
-            valid <= 0; 
+            valid <= 0;
         end else begin
             if(write_in && read_in && fifo_count > 0 && fifo_count < DEPTH) begin
                 wptr <= (wptr + 1) % DEPTH;
