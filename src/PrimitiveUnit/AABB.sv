@@ -16,8 +16,8 @@ module AABB #(
     output AABB_result_t test_result, // color ve tmin değerleri
     output logic valid_out
 );
-    localparam logic [WIDTH-1:0] ONE = 1 << Q_BITS;
-    localparam logic [WIDTH-1:0] NEGONE = 1 << Q_BITS;
+    localparam logic signed [WIDTH-1:0] ONE = 1 << Q_BITS;
+    localparam logic signed [WIDTH-1:0] NEGONE = -1 << Q_BITS;
     localparam logic [WIDTH-1:0] ZERO = 0;
     logic ray_hit_x,ray_hit_y,ray_hit_z;
     logic start_inv;
@@ -37,8 +37,8 @@ module AABB #(
                     ray_hit_y = 0;
                 end else begin
                     ray_hit_y = 1;
-                end
-            end else
+                end 
+            end else 
                 ray_hit_y = 1;
             if(ray_in.direction.z == 0) begin
                 if(!(ray_in.origin.z >= aabb_box.min.z & ray_in.origin.z <= aabb_box.max.z)) begin
@@ -209,13 +209,15 @@ module AABB #(
             valid = 1;
 
             case (max_tmin)
-                tminx: normal = '{x: NEGONE, y: ZERO,   z: ZERO};
-                tmaxx: normal = '{x: ONE,    y: ZERO,   z: ZERO};
-                tminy: normal = '{x: ZERO,   y: NEGONE, z: ZERO};
-                tmaxy: normal = '{x: ZERO,   y: ONE,    z: ZERO};
-                tminz: normal = '{x: ZERO,   y: ZERO,   z: NEGONE};
-                tmaxz: normal = '{x: ZERO,   y: ZERO,   z: ONE};
-                default: normal = '{x: ZERO, y: ZERO, z: ZERO};
+                tminx: normal =   '{x: NEGONE, y: ZERO,   z: ZERO};
+                tminy: normal =   '{x: ZERO,   y: NEGONE, z: ZERO};
+                tminz: normal =   '{x: ZERO,   y: ZERO,   z: NEGONE};
+
+                tmaxx: normal =   '{x: ONE,    y: ZERO,   z: ZERO};
+                tmaxy: normal =   '{x: ZERO,   y: ONE,    z: ZERO};
+                tmaxz: normal =   '{x: ZERO,   y: ZERO,   z: ONE};
+
+                default: normal = '{x: ZERO,   y: ZERO,   z: ZERO};
             endcase
 
         end else if (skip) begin
